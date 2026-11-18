@@ -13,7 +13,7 @@ export the seating plan as a PDF.
 
 - **PDF import**: detects photos and names automatically, including the header
   (class, subject, teacher). Scanned lists work with a grid mode.
-- **Room layouts**: physics room, classroom with desks for 2, single desks,
+- **Room layouts**: mini auditorium, classroom with desks for 2, single desks,
   U-shape, group tables, computer room – or design and save your own room.
 - **Drag & drop** with swap, undo, and *Random*, *Random (front)* and
   *Alphabetical* placement.
