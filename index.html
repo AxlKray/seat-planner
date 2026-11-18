@@ -201,7 +201,7 @@
     </div>
   </div>
 
-  <footer class="sp-foot"><b>© 2026 AxlKray · Switzerland</b> · No login, no ads, no tracking – completely free.<br>Class lists, photos and plans stay only in your browser’s storage. Nothing is uploaded.</footer>
+  <footer class="sp-foot"><b>© 2026 AxlKray · Switzerland</b> · No login, no ads, no tracking – completely free.<br>Names, photos and plans are stored only locally in this browser on this device. The PDF itself is not saved. Nothing is uploaded.</footer>
   <!-- Import dialog -->
   <div class="sp-modal" id="dlgImport">
     <div class="sp-dlg">
@@ -209,6 +209,7 @@
         <div class="tabs" id="impTabs" style="display:none"><button data-mode="auto" class="on">Automatic</button><button data-mode="grid">Grid</button></div>
       </header>
       <div class="body">
+        <div id="impErr" class="imp-msg" style="display:none;background:#fdecea;border-color:#f3b4ae;color:#8a1c12"></div>
         <div id="impDrop" class="drop">Drop a PDF here or <button id="bPick" class="primary">Choose file</button><br><small>The file is processed only in this browser – nothing is uploaded.</small></div>
         <div id="impWork" style="display:none">
           <div id="impMsg" class="imp-msg" style="display:none"></div>
@@ -278,9 +279,12 @@
 <script>
 (() => {
 'use strict';
-const PDFJS_VER = '6.2.108';
-const PDFJS_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/legacy/build/pdf.min.mjs`;
-const PDFJS_WORKER = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/legacy/build/pdf.worker.min.mjs`;
+// PDF reader (pdf.js): first the copy shipped next to this page (folder "pdfjs"), then public CDNs as fallback
+const PDFJS_SOURCES = [
+  ['./pdfjs/pdf.min.js', './pdfjs/pdf.worker.min.js'],
+  ['https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/legacy/build/pdf.min.mjs', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/legacy/build/pdf.worker.min.mjs'],
+  ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.mjs', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs']
+];
 const STORE_KEY = 'sitzplan-werkstatt-v1';
 
 // geometry (room units = px at zoom 1)
@@ -1017,9 +1021,15 @@ function newClassRecord(list, meta) {
 let pdfjs = null, imp = null;
 async function loadPdfJs() {
   if (pdfjs) return pdfjs;
-  pdfjs = await import(PDFJS_URL);
-  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-  return pdfjs;
+  let last = null;
+  for (const [lib, worker] of PDFJS_SOURCES) {
+    try {
+      const m = await import(new URL(lib, location.href).href);
+      m.GlobalWorkerOptions.workerSrc = new URL(worker, location.href).href;
+      return (pdfjs = m);
+    } catch (e) { last = e; console.warn('pdf.js not loaded from', lib, e); }
+  }
+  throw Object.assign(new Error('PDF library could not be loaded'), { libFailed: true, cause: last });
 }
 const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
 const app2 = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
@@ -1265,13 +1275,14 @@ function runDetect() {
 }
 function setTabs() { document.querySelectorAll('#impTabs button').forEach(b => b.classList.toggle('on', b.dataset.mode === imp.mode)); }
 function openImport() {
-  imp = null; $('impDrop').style.display = ''; $('impWork').style.display = 'none'; $('impTabs').style.display = 'none';
+  imp = null; $('impDrop').style.display = ''; $('impErr').style.display = 'none'; $('impWork').style.display = 'none'; $('impTabs').style.display = 'none';
   $('impOk').disabled = true; $('impCount').textContent = ''; $('impReplace').checked = false;
   $('impReplace').parentElement.style.display = canAddToCurrent() ? '' : 'none';
   $('dlgImport').classList.add('show');
 }
 async function handlePdf(file) {
   if (!file) return;
+  $('impErr').style.display = 'none';
   busy(true, 'Reading PDF …');
   try {
     const lib = await loadPdfJs();
@@ -1283,7 +1294,8 @@ async function handlePdf(file) {
     setTabs(); runDetect();
   } catch (err) {
     console.error(err);
-    toast(String(err).includes('import') || String(err).includes('fetch') ? 'Could not load the PDF library (internet connection?).' : 'Could not read the PDF.', 5000);
+    const msg = err && err.libFailed ? 'The PDF reader could not be loaded. Check the internet connection – or, on your own website, that the folder “pdfjs” was uploaded next to index.html.' : 'Could not read this PDF (' + ((err && err.message) || err) + ').';
+    $('impErr').textContent = msg; $('impErr').style.display = ''; toast(msg, 6000);
   } finally { busy(false); }
 }
 $('bImport').addEventListener('click', openImport);

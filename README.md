@@ -28,14 +28,15 @@ export the seating plan as a PDF.
 
 No login, no ads, no tracking – completely free.
 Everything runs in the browser. Class lists, photos and plans are stored only
-in the browser's own storage (IndexedDB) on that device. Nothing is uploaded.
+in the browser's own local database (IndexedDB) on that device – not in the cache.
+The PDF itself is not saved. Nothing is uploaded.
 
-The only external resource is the PDF reader [pdf.js](https://mozilla.github.io/pdf.js/),
-loaded from cdn.jsdelivr.net. It receives no student data.
+The PDF reader [pdf.js](https://github.com/mozilla/pdf.js) (Mozilla, Apache License 2.0)
+is included in the folder `pdfjs`, so the app needs no external server.
 
 ## Hosting
 
-`index.html` is a single self-contained file. Put it on any web server, or
+Upload `index.html` **together with the folder `pdfjs`** to any web server, or
 enable **GitHub Pages** for this repository (Settings → Pages → branch `main`, folder `/`).
 
 ---
