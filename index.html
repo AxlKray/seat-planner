@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seat Planner</title>
+<style>
+.sp-app{--ink:#1f2933;--muted:#66727f;--line:#d9dee4;--bg:#f4f5f7;--panel:#fff;--accent:#2557d6;--accent-soft:#e8eefc;--wood:#ead9bb;--wood-b:#c4a676;--lab:#c9d1d9;--lab-b:#6b7785;--pc:#dfe6ee;--danger:#c62828;
+  font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;box-sizing:border-box}
+.sp-app *,.sp-app *::before,.sp-app *::after{box-sizing:border-box}
+.sp-app button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+.sp-app button:hover{border-color:#aab4bf}
+.sp-app button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.sp-app button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sp-app button:disabled{opacity:.45;cursor:default}
+.sp-app input,.sp-app select{font:inherit;border:1px solid var(--line);border-radius:7px;padding:5px 7px;background:#fff;color:var(--ink)}
+.sp-app input[type=number]{width:58px}
+.sp-foot{padding:10px 16px;border-top:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:11.5px;text-align:center;line-height:1.5}
+.sp-foot b{color:var(--ink);font-weight:600}
+.sp-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.sp-head h1{font-size:17px;margin:0;font-weight:650;letter-spacing:-.01em}
+.sp-meta{display:flex;flex-wrap:wrap;gap:6px}
+.sp-meta input{width:70px}
+.sp-meta #mLehrer{width:220px}
+.sp-meta #mDatum{width:100px}
+.sp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.sp-bar .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:10px;border-right:1px solid var(--line)}
+.sp-bar .grp:last-child{border-right:0}
+.sp-bar label{color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:4px}
+.sp-params{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sp-classes{display:flex;gap:10px;align-items:center;padding:8px 16px;background:#fafbfc;border-bottom:1px solid var(--line);overflow-x:auto}
+.sp-classes .klbl{color:var(--muted);font-size:12.5px;font-weight:600}
+.sp-classes .ktiles{flex-wrap:nowrap}
+.sp-editbar{display:none;gap:6px;flex-wrap:wrap;align-items:center;padding:7px 16px;background:#fff8e6;border-bottom:1px solid #f0dca8;font-size:13px}
+.sp-editbar.show{display:flex}
+.sp-main{flex:1;display:flex;min-height:0}
+.sp-roomwrap{flex:1;overflow:auto;padding:18px;min-width:0}
+.sp-roomouter{margin:0 auto;position:relative}
+.sp-stage{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;border:2px solid #9aa5b1;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.sp-side{width:300px;flex:none;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.sp-side h2{font-size:13.5px;margin:0;padding:12px 14px 4px;font-weight:650}
+.sp-side .hint{color:var(--muted);font-size:12px;padding:0 14px 8px}
+.sp-pool{flex:1;overflow:auto;padding:8px 12px 16px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;min-height:120px;border-top:1px solid var(--line);background:#fafbfc}
+.sp-pool.over{background:var(--accent-soft)}
+.sp-pool .empty{color:var(--muted);font-size:12.5px;padding:18px 6px;text-align:center;width:100%}
+/* room items */
+.it{position:absolute;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#5a4a2c;user-select:none}
+.it.desk{background:var(--wood);border:1.5px solid var(--wood-b)}
+.it.lab{background:var(--lab);border:2px solid var(--lab-b);border-radius:3px}
+.it.lab::before,.it.lab::after{content:"";position:absolute;top:50%;width:10px;height:10px;margin-top:-5px;background:#e9b949;border:1.5px solid #8a6d1d;border-radius:2px}
+.it.lab::before{left:-6px}.it.lab::after{right:-6px}
+.it.pc{background:var(--pc);border:1.5px solid #8796a8}
+.it.bench{background:#eef1f4;border:2px solid #4b5563;border-radius:2px}
+.it.board{background:#2f4a3c;color:#e8efe9;border-radius:2px;font-weight:600;letter-spacing:.08em}
+.it.teacher{background:#d9c39b;border:1.5px solid #a88a57;font-weight:600}
+.it.labteacher{background:#aeb8c2;border:2px solid #56616d;color:#1f2933;font-weight:600}
+.it.door{background:#fff;border:2px solid #8a6d3b;color:#8a6d3b;font-size:11px}
+.it.window{background:repeating-linear-gradient(180deg,#cfe6f7 0 18px,#9cc3e0 18px 20px);border:1px solid #7aa7c9}
+.it.notaus{background:#d32f2f;color:#fff;border-radius:50%;font-size:9px;font-weight:700;border:2px solid #ffeb3b}
+.it .lbl{pointer-events:none;white-space:nowrap}
+.it.window .lbl{writing-mode:vertical-rl;color:#3d6a8c;font-size:11px}
+.editing .it{cursor:move;outline:1px dashed transparent}
+.editing .it:hover{outline-color:#c58b00}
+.it.sel{outline:2px solid #e09b00 !important;outline-offset:2px}
+.seat{position:absolute;width:80px;height:108px;border:1.5px dashed #b9c2cc;border-radius:7px;background:rgba(255,255,255,.55)}
+.seat.over{border-color:var(--accent);background:var(--accent-soft);border-style:solid}
+.editing .seat{pointer-events:none}
+/* cards */
+.card{width:80px;height:108px;background:#fff;border:1px solid #c9d0d8;border-radius:7px;box-shadow:0 1px 2px rgba(0,0,0,.12);overflow:hidden;display:flex;flex-direction:column;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.seat>.card{position:absolute;left:-1.5px;top:-1.5px}
+.card .ph{flex:1;min-height:0;background:#e6eaef;display:flex;align-items:center;justify-content:center;font-weight:650;font-size:22px;color:#7b8794;overflow:hidden}
+.card .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;pointer-events:none;display:block}
+.card .nm{height:28px;padding:1px 3px;font-size:10.5px;line-height:1.15;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;word-break:break-word;font-weight:550}
+.card .nm .n1{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .nm .note{display:block;max-width:100%;font-size:9px;font-weight:400;color:#5b6672;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notes-list{display:grid;gap:6px}
+.notes-list .row{display:grid;grid-template-columns:34px 1fr 1.3fr;gap:8px;align-items:center}
+.notes-list img,.notes-list .ini{width:34px;height:40px;object-fit:cover;object-position:50% 20%;border-radius:5px;background:#e6eaef;display:flex;align-items:center;justify-content:center;font-size:12px;color:#7b8794}
+.notes-list input{width:100%}
+.card.dragging{opacity:.3}
+.card.ghost{position:fixed;z-index:9999;pointer-events:none;transform-origin:0 0;box-shadow:0 8px 22px rgba(0,0,0,.28);opacity:.95}
+.editing .card{pointer-events:none}
+/* class tiles */
+.ktiles{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.ktile{position:relative;display:flex;align-items:center;gap:8px;padding:6px 26px 6px 6px;border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;min-width:140px;user-select:none}
+.ktile:hover{border-color:#aab4bf}
+.ktile.active,.ktile.sel{border-color:var(--accent);background:var(--accent-soft)}
+.kmos{width:40px;height:40px;border-radius:7px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;background:#e6eaef;flex:none}
+.kmos img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;display:block}
+.kmos span{grid-column:1/3;display:flex;align-items:center;justify-content:center;font-size:20px}
+.ktxt{display:flex;flex-direction:column;line-height:1.25}
+.ktxt b{font-size:13.5px;font-weight:650}.ktxt small{color:var(--muted);font-size:11.5px}
+.sp-app .kdel{position:absolute;top:3px;right:3px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;font-size:12px;line-height:1;opacity:0;border-color:transparent;background:transparent;color:var(--muted)}
+.ktile:hover .kdel,.sp-app .kdel.armed{opacity:1}
+.sp-app .kdel.armed{background:#c62828;color:#fff;padding:0 7px}
+.kchk{position:absolute;top:-7px;left:-7px;width:20px;height:20px;border-radius:50%;border:1.5px solid #b9c2cc;background:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff}
+.ktile.sel .kchk{background:var(--accent);border-color:var(--accent)}
+.ktile.knew{border-style:dashed;justify-content:center;color:var(--accent);font-weight:600;padding:6px 14px;min-width:0}
+/* modal */
+.sp-modal{position:fixed;inset:0;background:rgba(20,26,33,.45);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.sp-modal.show{display:flex}
+.sp-dlg{background:#fff;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.3);width:min(1100px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}
+.sp-dlg.small{width:min(420px,100%)}
+.sp-dlg header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.sp-dlg header h3{margin:0;font-size:16px;flex:1}
+.sp-dlg .body{padding:14px 18px;overflow:auto;flex:1}
+.sp-dlg footer{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp-dlg footer .sp{flex:1}
+.tabs{display:flex;gap:4px}
+.imp-grid{display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:16px}
+.imp-grid.nopreview{grid-template-columns:1fr}
+.imp-grid.nopreview .imp-prev{display:none}
+.imp-prev canvas{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
+.imp-set{display:grid;grid-template-columns:repeat(2,auto);gap:6px 10px;align-items:center;margin-bottom:10px;font-size:13px;justify-content:start}
+.imp-res{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start}
+.imp-c{width:104px;border:1px solid var(--line);border-radius:8px;padding:5px;position:relative;background:#fafbfc}
+.imp-c img{width:100%;height:110px;object-fit:cover;object-position:50% 20%;border-radius:5px;display:block;background:#e6eaef}
+.imp-c input{width:100%;margin-top:4px;font-size:11.5px;padding:3px 5px}
+.imp-c .x{position:absolute;top:2px;right:2px;width:22px;height:22px;padding:0;border-radius:50%;font-size:13px;line-height:1;background:rgba(255,255,255,.9)}
+.imp-msg{padding:10px 12px;background:#fff8e6;border:1px solid #f0dca8;border-radius:8px;margin-bottom:12px;font-size:13px}
+.drop{border:2px dashed #b9c2cc;border-radius:10px;padding:26px;text-align:center;color:var(--muted);background:#fafbfc}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.sp-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:9px 16px;border-radius:9px;font-size:13.5px;z-index:2000;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.sp-toast.show{opacity:1}
+.sp-busy{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:3000;display:none;align-items:center;justify-content:center;font-size:15px;font-weight:600}
+.sp-busy.show{display:flex}
+.frm{display:grid;gap:10px}
+.frm label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.frm .ph-edit{display:flex;gap:12px;align-items:center}
+.frm .ph-edit .card{cursor:default}
+@media (max-width:820px){.sp-main{flex-direction:column}.sp-side{width:auto;border-left:0;border-top:1px solid var(--line);max-height:42vh}.imp-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body style="margin:0">
+<div class="sp-app" id="spApp">
+  <div class="sp-head">
+    <h1>Seat Planner</h1>
+    <div class="sp-meta">
+      <input id="mKlasse" placeholder="Class" title="Class">
+      <input id="mFach" placeholder="Subject" title="Subject">
+      <input id="mRaum" placeholder="Room" title="Room">
+      <input id="mLehrer" placeholder="Teacher" title="Teacher">
+      <input id="mDatum" placeholder="HS2026/27" title="Term">
+    </div>
+  </div>
+  <div class="sp-bar">
+    <div class="grp">
+      <button class="primary" id="bImport">Load class list (PDF)</button>
+      <button id="bAddStudent">+ Student</button>
+    </div>
+    <div class="grp">
+      <label>Layout <select id="selTpl"></select></label>
+      <div class="sp-params" id="params"></div>
+    </div>
+    <div class="grp">
+      <button id="bEdit" title="Move, add, delete tables">Edit room</button>
+      <button id="bFlip" title="Rotate plan by 180°">View: board at top</button>
+      <label>Labels <select id="selLabel"><option value="firstI">First L.</option><option value="full">First Last</option><option value="first">First name</option></select></label>
+      <label title="Show a second line under the name (e.g. hobby, elective)"><input type="checkbox" id="chkNote" checked> Extra line</label>
+      <button id="bNotes" title="Enter extra lines for all students">✎ Extra lines</button>
+    </div>
+    <div class="grp">
+      <button id="bRandom">Random</button>
+      <button id="bRandomFront" title="Random, but only on the front seats – gaps stay at the back">Random (front)</button>
+      <button id="bAlpha">Alphabetical</button>
+      <button id="bClear">Clear seats</button>
+      <button id="bUndo" title="Undo (Ctrl+Z)">↶</button>
+    </div>
+    <div class="grp">
+      <button class="primary" id="bPdf">Export PDF</button>
+      <label title="Zoom">🔍 <input type="range" id="zoom" min="50" max="160" value="100" style="width:80px"></label>
+    </div>
+  </div>
+  <div class="sp-classes"><span class="klbl">Classes</span><div class="ktiles" id="ktiles"></div></div>
+  <div class="sp-editbar" id="editbar">
+    <b>Edit room:</b> drag tables to move them, click to select.
+    <span style="flex:0 0 8px"></span>
+    Add:
+    <button data-add="d1">Single desk</button>
+    <button data-add="d2">Desk for 2</button>
+    <button data-add="d2v">Desk for 2 (vertical)</button>
+    <button data-add="g4">Group of 4</button>
+    <button data-add="lab4">Lab bench (4)</button>
+    <button data-add="teacher">Teacher’s desk</button>
+    <button data-add="board">Board</button>
+    <button id="bDelItem" style="color:var(--danger)" disabled>Delete selection</button>
+    <span style="flex:0 0 8px"></span>
+    <button id="bSaveRoom">Save as new room…</button>
+    <button id="bUpdRoom">Save changes</button>
+    <button id="bDelRoom" style="color:var(--danger)">Delete room</button>
+    <button class="primary" id="bEditDone">Done</button>
+  </div>
+  <div class="sp-main">
+    <div class="sp-roomwrap" id="roomwrap">
+      <div class="sp-roomouter" id="roomouter"><div class="sp-stage" id="stage"></div></div>
+    </div>
+    <div class="sp-side">
+      <h2>Unseated <span id="poolCount" style="color:var(--muted);font-weight:500"></span></h2>
+      <div class="hint">Drag cards onto a seat. Drop on a taken seat = swap. Drag back here = free the seat. Tap a card = edit name/photo.</div>
+      <div class="sp-pool" id="pool" data-pool="1"></div>
+    </div>
+  </div>
+
+  <footer class="sp-foot"><b>© 2026 AxlKray · Switzerland</b> · No login, no ads, no tracking – completely free.<br>Class lists, photos and plans stay only in your browser’s storage. Nothing is uploaded.</footer>
+  <!-- Import dialog -->
+  <div class="sp-modal" id="dlgImport">
+    <div class="sp-dlg">
+      <header><h3>Import class list</h3>
+        <div class="tabs" id="impTabs" style="display:none"><button data-mode="auto" class="on">Automatic</button><button data-mode="grid">Grid</button></div>
+      </header>
+      <div class="body">
+        <div id="impDrop" class="drop">Drop a PDF here or <button id="bPick" class="primary">Choose file</button><br><small>The file is processed only in this browser – nothing is uploaded.</small></div>
+        <div id="impWork" style="display:none">
+          <div id="impMsg" class="imp-msg" style="display:none"></div>
+          <div class="imp-grid" id="impGrid">
+            <div class="imp-prev" id="impPrev">
+              <div class="imp-set" id="gridSet">
+                <span>Rows</span><input type="number" id="gRows" min="1" max="20" value="5">
+                <span>Columns</span><input type="number" id="gCols" min="1" max="20" value="6">
+                <span>Margin top %</span><input type="number" id="gMt" min="0" max="60" value="8">
+                <span>Margin bottom %</span><input type="number" id="gMb" min="0" max="60" value="5">
+                <span>Margin left %</span><input type="number" id="gMl" min="0" max="40" value="5">
+                <span>Margin right %</span><input type="number" id="gMr" min="0" max="40" value="5">
+                <span>Name area %</span><input type="number" id="gNz" min="0" max="70" value="22">
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><button id="pPrev">‹</button><span id="pLbl"></span><button id="pNext">›</button></div>
+              <canvas id="prevCanvas"></canvas>
+              <div style="font-size:12px;color:var(--muted);margin-top:4px">Blue = photo, orange = name. The setting applies to all pages.</div>
+            </div>
+            <div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:13px">
+                <label>Name format <select id="nameFmt"><option value="swap">First Last</option><option value="asis">as in the PDF</option></select></label>
+                <label><input type="checkbox" id="dblName" checked> only 1st first name + last name (no middle names; first part of hyphenated last names)</label>
+                <label><input type="checkbox" id="impReplace"> add to the open class (instead of a new class)</label>
+              </div>
+              <div class="imp-res" id="impRes"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer><button id="impCancel">Cancel</button><span class="sp"></span><span id="impCount" style="color:var(--muted)"></span><button class="primary" id="impOk" disabled>Import</button></footer>
+    </div>
+  </div>
+
+  <!-- Student edit dialog -->
+  <div class="sp-modal" id="dlgStudent">
+    <div class="sp-dlg small">
+      <header><h3 id="stTitle">Edit student</h3></header>
+      <div class="body frm">
+        <div class="ph-edit"><div id="stCard"></div><div style="display:grid;gap:6px"><button id="stPhoto">Choose photo…</button><button id="stNoPhoto">Remove photo</button></div></div>
+        <label>Name<input id="stName"></label>
+        <label>Extra line (e.g. hobby, elective)<input id="stNote" maxlength="40" placeholder="optional"></label>
+      </div>
+      <footer><button id="stDelete" style="color:var(--danger)">Delete</button><span class="sp"></span><button id="stCancel">Cancel</button><button class="primary" id="stOk">OK</button></footer>
+    </div>
+  </div>
+
+ <div class="sp-modal" id="dlgRoom">
+    <div class="sp-dlg small">
+      <header><h3>Save new room</h3></header>
+      <div class="body frm"><label>Room name<input id="roomName" placeholder="e.g. Room P11"></label></div>
+      <footer><span class="sp"></span><button id="roomCancel">Cancel</button><button class="primary" id="roomOk">Save</button></footer>
+    </div>
+  </div>
+ <div class="sp-modal" id="dlgNotes">
+    <div class="sp-dlg" style="width:min(640px,100%)">
+      <header><h3>Extra lines</h3><span style="color:var(--muted);font-size:12.5px">e.g. hobby, elective – shown small under the name</span></header>
+      <div class="body"><div class="notes-list" id="notesList"></div></div>
+      <footer><button id="notesClear" style="color:var(--danger)">Clear all</button><span class="sp"></span><button id="notesCancel">Cancel</button><button class="primary" id="notesOk">Save</button></footer>
+    </div>
+  </div>
+  <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
+  <input type="file" id="fileImg" accept="image/*" hidden>
+  <div class="sp-toast" id="toast"></div>
+  <div class="sp-busy" id="busy">Working …</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const PDFJS_VER = '6.2.108';
+const PDFJS_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/legacy/build/pdf.min.mjs`;
+const PDFJS_WORKER = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/legacy/build/pdf.worker.min.mjs`;
+const STORE_KEY = 'sitzplan-werkstatt-v1';
+
+// geometry (room units = px at zoom 1)
+const CW = 80, CH = 108, P = 88, TD = 46, OV = 18, FRONT = 200, PAD = 30;
+
+const $ = id => document.getElementById(id);
+const app = $('spApp');
+
+// ---------------- state ----------------
+let state = {
+  meta: { klasse: '', fach: '', raum: '', lehrer: '', datum: '' },
+  students: [],            // {id, name, photo}
+  tpl: 'physics', params: {},
+  items: [],               // room items
+  assign: {},              // seatId -> studentId
+  flipped: true, label: 'firstI', customRooms: []
+};
+let editMode = false, selectedItem = null, zoomF = 1, scale = 1, frozenBox = null;
+const undoStack = [];
+
+// ---------------- helpers ----------------
+let _nid = 0;
+const nid = p => p + (++_nid) + Math.random().toString(36).slice(2, 6);
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms); }
+function busy(on, msg) { $('busy').textContent = msg || 'Working …'; $('busy').classList.toggle('show', !!on); }
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function splitName(n) {
+  n = (n || '').trim();
+  if (n.includes(',')) { const [a, ...b] = n.split(','); return { first: b.join(',').trim(), last: a.trim() }; }
+  const parts = n.split(/\s+/); if (parts.length < 2) return { first: n, last: '' };
+  return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
+}
+// same first name in the class -> add first letter(s) of the last name ("Lena M.")
+function firstUnique(name, list) {
+  const { first, last } = splitName(name), f = (first || last).toLowerCase();
+  const others = list.map(o => splitName(o.name)).filter(o => (o.first || o.last).toLowerCase() === f);
+  if (others.length < 2 || !last) return first || last;
+  let k = 1;
+  while (k < last.length && others.filter(o => o.last.slice(0, k).toLowerCase() === last.slice(0, k).toLowerCase()).length > 1) k++;
+  return (first || last) + ' ' + last.slice(0, k) + '.';
+}
+function displayName(n) {
+  if (state.label === 'full') return n;
+  const { first, last } = splitName(n);
+  if (state.label === 'first') return firstUnique(n, state.students);
+  return (first || '') + (last ? ' ' + last[0] + '.' : '');
+}
+function initials(n) { const { first, last } = splitName(n); return ((first[0] || '') + (last[0] || '')).toUpperCase() || '?'; }
+function sortKey(n) { const { first, last } = splitName(n); return (last + ' ' + first).toLocaleLowerCase('de'); }
+
+// ---------------- room generators ----------------
+function hTable(x, y, n, side = 'below', kind = 'desk') {
+  const w = n * P + 8, h = kind === 'lab' ? TD + 6 : TD, seats = [];
+  for (let i = 0; i < n; i++) seats.push({ dx: 4 + i * P + (P - CW) / 2, dy: side === 'below' ? h - OV : -CH + OV });
+  return { id: nid('t'), kind, x, y, w, h, seats };
+}
+function groupTable(x, y, top, bottom, kind = 'desk') {
+  const m = Math.max(top, bottom), w = m * P + 8, h = TD + 14, seats = [];
+  const ot = (w - top * P) / 2, ob = (w - bottom * P) / 2;
+  for (let i = 0; i < top; i++) seats.push({ dx: ot + i * P + (P - CW) / 2, dy: -CH + OV });
+  for (let i = 0; i < bottom; i++) seats.push({ dx: ob + i * P + (P - CW) / 2, dy: h - OV });
+  return { id: nid('t'), kind, x, y, w, h, seats };
+}
+function vTable(x, y, n, side = 'left', kind = 'desk') {
+  const w = TD, h = n * (CH + 10) + 8, seats = [];
+  for (let i = 0; i < n; i++) seats.push({ dx: side === 'left' ? -CW + OV : TD - OV, dy: 4 + i * (CH + 10) + 1 });
+  return { id: nid('t'), kind, x, y, w, h, seats };
+}
+// seats sitting directly on the table (one cell per seat), as in the room sketches
+const CELL = P + 4;
+function hCells(x, y, n, kind = 'desk') {
+  const t = { id: nid('t'), kind, x, y, w: n * CELL + 6, h: CH + 14, seats: [] };
+  for (let i = 0; i < n; i++) t.seats.push({ dx: 3 + i * CELL + (CELL - CW) / 2, dy: 7 });
+  return t;
+}
+function vCells(x, y, n, kind = 'desk') {
+  const t = { id: nid('t'), kind, x, y, w: CELL + 6, h: n * (CH + 12) + 6, seats: [] };
+  for (let i = 0; i < n; i++) t.seats.push({ dx: (CELL + 6 - CW) / 2, dy: 3 + i * (CH + 12) + 6 });
+  return t;
+}
+const deco = (kind, x, y, w, h, label = '') => ({ id: nid('d'), kind, x, y, w, h, label, seats: [] });
+
+function bounds(items) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const it of items) {
+    minX = Math.min(minX, it.x); minY = Math.min(minY, it.y); maxX = Math.max(maxX, it.x + it.w); maxY = Math.max(maxY, it.y + it.h);
+    for (const s of it.seats || []) { minX = Math.min(minX, it.x + s.dx); minY = Math.min(minY, it.y + s.dy); maxX = Math.max(maxX, it.x + s.dx + CW); maxY = Math.max(maxY, it.y + s.dy + CH); }
+  }
+  if (!isFinite(minX)) return { minX: 0, minY: 0, maxX: 800, maxY: 600 };
+  return { minX, minY, maxX, maxY };
+}
+// adds board, teacher desk, windows, door around the seating block
+function frame(items, opt = {}) {
+  const b = items.length ? bounds(items) : { minX: 80, minY: FRONT, maxX: 760, maxY: 640 };
+  const cx = (b.minX + b.maxX) / 2, width = b.maxX - b.minX;
+  const bw = Math.min(440, Math.max(260, width * .55));
+  const out = [...items];
+  out.push(deco('board', cx - bw / 2, 24, bw, 22, 'BOARD'));
+  if (opt.wideTeacher || opt.teacherFrac) { const lw = Math.max(170, width * (opt.teacherFrac || .5)); out.push(deco('teacher', cx - lw / 2, 86, lw, 66, 'Teacher’s desk')); }
+  else if (opt.labTeacher) { const lw = Math.min(520, Math.max(300, width * .6)); out.push(deco('labteacher', cx - lw / 2, 82, lw, 68, 'Demo bench'));}
+  else out.push(deco('teacher', b.maxX - 150, 86, 150, 62, 'Teacher’s desk'));
+
+  return out;
+}
+
+const TEMPLATES = {
+  raemi: {
+    name: 'Physics room Rämi (2 × 3-seat benches)',
+    flip: true,
+    params: [['rows', 'Rows', 5, 1, 9], ['per', 'Seats/bench', 3, 1, 5], ['benches', 'Benches/row', 2, 1, 3]],
+    gen(p) {
+      // each seat is a cell directly on the bench (as in the room sketch)
+      const cellW = P + 4, bw = p.per * cellW + 6, bh = CH + 14, A = 70, pitch = bh + 26, out = [];
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.benches; c++) {
+        const t = { id: nid('t'), kind: 'bench', x: 60 + c * (bw + A), y: FRONT + r * pitch, w: bw, h: bh, seats: [] };
+        for (let i = 0; i < p.per; i++) t.seats.push({ dx: 3 + i * cellW + (cellW - CW) / 2, dy: 7 });
+        out.push(t);
+      }
+      return frame(out, { wideTeacher: true, noDoor: true });
+    }
+  },
+  cls2: {
+    name: 'Classroom – desks for 2 (3 columns)',
+    flip: true,
+    params: [['rows', 'Rows', 5, 1, 10], ['cols', 'Tables/row', 3, 1, 6], ['per', 'Seats/table', 2, 1, 4]],
+    gen(p) {
+      const tw = p.per * CELL + 6, A = 95, pitch = CH + 14 + 32, out = [];
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) out.push(hCells(60 + c * (tw + A), FRONT + r * pitch, p.per));
+      return frame(out, { teacherFrac: .28 });
+    }
+  },
+  single6: {
+    name: 'Single desks (rows of 6, 4 at the back)',
+    flip: true,
+    params: [['rows', 'Rows', 4, 1, 10], ['cols', 'Tables/row', 6, 1, 10], ['back', 'Tables last row', 4, 0, 10]],
+    gen(p) {
+      const tw = CELL + 6, A = 50, pitch = CH + 14 + 40, out = [];
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) out.push(hCells(60 + c * (tw + A), FRONT + r * pitch, 1));
+      const fullW = p.cols * tw + (p.cols - 1) * A, bw = p.back * tw + Math.max(0, p.back - 1) * A;
+      for (let c = 0; c < p.back; c++) out.push(hCells(60 + (fullW - bw) / 2 + c * (tw + A), FRONT + p.rows * pitch, 1));
+      return frame(out, { teacherFrac: .3 });
+    }
+  },
+  ucells: {
+    name: 'U-shape (seats at the table)',
+    flip: true,
+    params: [['left', 'Seats left', 5, 1, 10], ['back', 'Seats back', 6, 3, 12], ['right', 'Seats right', 5, 1, 10]],
+    gen(p) {
+      const x0 = 60, bw = p.back * CELL + 6, sw = CELL + 6;
+      const L = vCells(x0, FRONT, p.left), R = vCells(x0 + bw - sw, FRONT, p.right);
+      const back = hCells(x0, FRONT + Math.max(L.h, R.h), p.back);
+      return frame([L, R, back], { teacherFrac: .4 });
+    }
+  },
+  rows: {
+    name: 'Rows – desks for 2',
+    params: [['rows', 'Rows', 5, 1, 10], ['cols', 'Tables/row', 3, 1, 6], ['per', 'Seats/table', 2, 1, 4]],
+    gen(p) {
+      const tw = p.per * P + 8, A = 64, pitch = TD + CH - OV + 34, out = [];
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) out.push(hTable(80 + c * (tw + A), FRONT + r * pitch, p.per));
+      return frame(out);
+    }
+  },
+  ushape: {
+    name: 'U-shape / horseshoe',
+    params: [['left', 'Seats left', 5, 1, 10], ['back', 'Seats back', 6, 1, 12], ['right', 'Seats right', 5, 1, 10], ['inner', 'Inner rows (2)', 0, 0, 4]],
+    gen(p) {
+      const lx = 80 + CW - OV, out = [];
+      const innerBlockW = p.inner ? 2 * (2 * P + 8) + 60 : 0;
+      const innerW = Math.max(p.back * P + 8, innerBlockW + 60, 380);
+      const bx0 = lx + TD + 14, rx = bx0 + innerW + 14;
+      const L = vTable(lx, FRONT, p.left, 'left'), R = vTable(rx, FRONT, p.right, 'right');
+      let bottom = Math.max(L.h, R.h);
+      const pitch = TD + CH - OV + 30;
+      for (let r = 0; r < p.inner; r++) for (let c = 0; c < 2; c++) {
+        const tw = 2 * P + 8, x0 = bx0 + (innerW - (2 * tw + 60)) / 2;
+        out.push(hTable(x0 + c * (tw + 60), FRONT + 40 + r * pitch, 2));
+      }
+      if (p.inner) bottom = Math.max(bottom, 40 + p.inner * pitch);
+      const bw = p.back * P + 8;
+      out.push(L, R, hTable(bx0 + (innerW - bw) / 2, FRONT + bottom + 8, p.back, 'below'));
+      return frame(out);
+    }
+  },
+  groups: {
+    name: 'Group tables',
+    params: [['groups', 'Groups', 6, 1, 12], ['per', 'Seats/group', 4, 2, 8], ['perRow', 'Groups/row', 3, 1, 5]],
+    gen(p) {
+      const top = Math.ceil(p.per / 2), bot = p.per - top, w = top * P + 8, h = TD + 14;
+      const cw = w + 90, chh = (CH - OV) * 2 + h + 46, out = [];
+      for (let g = 0; g < p.groups; g++) {
+        const r = Math.floor(g / p.perRow), c = g % p.perRow;
+        out.push(groupTable(80 + c * cw, FRONT + CH - OV + r * chh, top, bot));
+      }
+      return frame(out);
+    }
+  },
+  physics: {
+    name: 'Physics room',
+    flip: true,
+    params: [['rows', 'Bench rows', 5, 1, 9], ['benches', 'Benches/row', 2, 1, 3], ['per', 'Seats/bench', 3, 1, 6]],
+    gen(p) {
+      const bw = p.per * P + 8, A = 110, pitch = TD + 6 + CH - OV + 44, out = [], y0 = FRONT + 50;
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.benches; c++) out.push(hTable(80 + c * (bw + A), y0 + r * pitch, p.per, 'below', 'lab'));
+      return frame(out, { labTeacher: true });
+    }
+  },
+  computer: {
+    name: 'Computer room (seats along the walls)',
+    params: [['left', 'PCs left', 5, 0, 10], ['back', 'PCs back', 5, 0, 12], ['right', 'PCs right', 5, 0, 10], ['center', 'Middle rows (2)', 2, 0, 5]],
+    gen(p) {
+      const lx = 80, out = [], pitch = TD + CH - OV + 34;
+      const centerW = p.center ? 2 * (2 * P + 8) + 60 : 0;
+      const innerStart = lx + TD - OV + CW + 30;
+      const innerW = Math.max(p.back * P + 8, centerW, 320);
+      const rx = innerStart + innerW + 30 + CW - OV;
+      let sideH = 0;
+      if (p.left) { const t = vTable(lx, FRONT, p.left, 'right', 'pc'); out.push(t); sideH = Math.max(sideH, t.h); }
+      if (p.right) { const t = vTable(rx, FRONT, p.right, 'left', 'pc'); out.push(t); sideH = Math.max(sideH, t.h); }
+      for (let r = 0; r < p.center; r++) for (let c = 0; c < 2; c++) {
+        const tw = 2 * P + 8, x0 = innerStart + (innerW - (2 * tw + 60)) / 2;
+        out.push(hTable(x0 + c * (tw + 60), FRONT + r * pitch, 2));
+      }
+      if (p.back) {
+        const need = Math.max(sideH, p.center * pitch + CH - OV + 10);
+        const by = FRONT + need + 10, w = rx + TD - lx, t = { id: nid('t'), kind: 'pc', x: lx, y: by, w, h: TD, seats: [] };
+        const s0 = innerStart - lx + (innerW - p.back * P) / 2;
+        for (let i = 0; i < p.back; i++) t.seats.push({ dx: s0 + i * P + (P - CW) / 2, dy: -CH + OV });
+        out.push(t);
+      }
+      return frame(out);
+    }
+  },
+  single: {
+    name: 'Single desks (exam)',
+    params: [['rows', 'Rows', 5, 1, 10], ['cols', 'Columns', 6, 1, 10]],
+    gen(p) {
+      const out = [], pitch = TD + CH - OV + 40;
+      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) out.push(hTable(80 + c * (P + 8 + 52), FRONT + r * pitch, 1));
+      return frame(out);
+    }
+  },
+  empty: { name: 'Empty room (design your own)', params: [], gen() { return frame([]); } }
+};
+
+const isCustom = k => typeof k === 'string' && k.startsWith('c:');
+const customRoom = k => (state.customRooms || []).find(r => 'c:' + r.id === k);
+const canEditRoom = () => state.tpl === 'empty' || isCustom(state.tpl);
+function tplParams(key) {
+  const t = TEMPLATES[key], p = {}; if (!t) return p;
+  for (const [k, , def] of t.params) p[k] = state.params[key]?.[k] ?? def;
+  return p;
+}
+function generateRoom() {
+  _nid = 0;
+  const cr = customRoom(state.tpl);
+  if (isCustom(state.tpl) && !cr) state.tpl = 'raemi';
+  state.items = cr ? JSON.parse(JSON.stringify(cr.items)) : TEMPLATES[state.tpl].gen(tplParams(state.tpl));
+  cleanupAssign();
+}
+function seats() {
+  const out = [];
+  for (const it of state.items) (it.seats || []).forEach((s, i) => out.push({ id: it.id + '-' + i, x: it.x + s.dx, y: it.y + s.dy, item: it }));
+  return out;
+}
+function cleanupAssign() {
+  const ids = new Set(seats().map(s => s.id)), st = new Set(state.students.map(s => s.id));
+  for (const k of Object.keys(state.assign)) if (!ids.has(k) || !st.has(state.assign[k])) delete state.assign[k];
+}
+
+// ---------------- undo / persistence ----------------
+function snapshot() { return JSON.stringify({ students: state.students, items: state.items, assign: state.assign, tpl: state.tpl, params: state.params }); }
+function pushUndo() { undoStack.push(snapshot()); if (undoStack.length > 60) undoStack.shift(); $('bUndo').disabled = false; }
+function undo() {
+  const s = undoStack.pop(); if (!s) return;
+  Object.assign(state, JSON.parse(s)); $('bUndo').disabled = !undoStack.length;
+  syncControls(); render(); persist(true);
+}
+let persistT = null, dirtyClass = false;
+const LAST_KEY = 'sitzplan-last-class', ROOMS_KEY = 'sitzplan-rooms-v1', NOCLASS_KEY = 'sitzplan-noclass';
+let classes = [], curId = null;
+const NO_DECO = new Set(['window', 'door', 'notaus']);
+const stripDeco = items => (items || []).filter(i => !NO_DECO.has(i.kind));
+const planOf = () => ({ tpl: state.tpl, params: state.params, items: state.items, assign: state.assign, flipped: state.flipped, label: state.label, labelV2: true, showNote: state.showNote !== false });
+function persist(all) { if (all) dirtyClass = true; clearTimeout(persistT); persistT = setTimeout(flush, 400); }
+async function flush() {
+  persistT = null;
+  try { localStorage.setItem(ROOMS_KEY, JSON.stringify(state.customRooms || [])); } catch (e) { }
+  try {
+    if (curId) {
+      await DB.put('plans', { id: curId, ...planOf() });
+      if (dirtyClass) {
+        dirtyClass = false;
+        const c = classes.find(x => x.id === curId);
+        if (c) { c.meta = { ...state.meta }; c.students = state.students; c.updated = Date.now(); await DB.put('classes', c); renderClasses(); }
+      }
+    } else { try { localStorage.setItem(NOCLASS_KEY, JSON.stringify(planOf())); } catch (e) { } }
+  } catch (e) { console.error(e); toast('Saving in the browser failed (storage full?).', 4000); }
+}
+window.addEventListener('pagehide', () => { if (persistT) { clearTimeout(persistT); flush(); } });
+function renderClasses() {
+  const list = [...classes].sort((a, b) => (a.created || 0) - (b.created || 0));
+  $('ktiles').innerHTML = list.map(c => classTileHTML(c, { active: c.id === curId })).join('') + `<div class="ktile knew" id="kNew">+ New class (PDF)</div>`;
+}
+$('ktiles').addEventListener('click', e => {
+  if (e.target.id === 'kNew') return openImport();
+  const t = e.target.closest('[data-k]'); if (!t) return;
+  if (e.target.classList.contains('kdel')) return armDelete(e.target, () => deleteClass(t.dataset.k));
+  if (t.dataset.k !== curId) openClass(t.dataset.k);
+});
+async function openClass(id) {
+  if (persistT) { clearTimeout(persistT); await flush(); }
+  const c = classes.find(x => x.id === id); if (!c) return;
+  const plan = await DB.get('plans', id);
+  curId = id; try { localStorage.setItem(LAST_KEY, id); } catch (e) { }
+  state.meta = Object.assign({ klasse: '', fach: '', raum: '', lehrer: '', datum: '' }, c.meta || {});
+  state.students = c.students || [];
+  if (plan && Array.isArray(plan.items)) Object.assign(state, { tpl: plan.tpl, params: plan.params || {}, items: stripDeco(plan.items), assign: plan.assign || {}, flipped: !!plan.flipped, label: plan.labelV2 ? (plan.label || 'firstI') : 'firstI', showNote: plan.showNote !== false });
+  else { state.assign = {}; state.tpl = 'physics'; state.flipped = true; generateRoom(); }
+  if (isCustom(state.tpl) && !customRoom(state.tpl)) state.tpl = 'empty';
+  undoStack.length = 0; $('bUndo').disabled = true; if (editMode) setEdit(false);
+  cleanupAssign(); syncControls(); render(); renderClasses();
+}
+async function deleteClass(id) {
+  await DB.del('classes', id); await DB.del('plans', id);
+  classes = classes.filter(c => c.id !== id);
+  if (curId === id) {
+    curId = null; try { localStorage.removeItem(LAST_KEY); } catch (e) { }
+    state.students = []; state.assign = {}; state.meta = { klasse: '', fach: '', raum: '', lehrer: '', datum: '' };
+    undoStack.length = 0; $('bUndo').disabled = true; syncControls(); render();
+  }
+  renderClasses(); toast('Class deleted.');
+}
+async function createClass(list, meta) {
+  if (persistT) { clearTimeout(persistT); await flush(); }
+  const c = newClassRecord(list, Object.assign({ datum: state.meta.datum }, meta));
+  classes.push(c); await DB.put('classes', c);
+  await openClass(c.id);  // no plan yet: keeps the current room, empty seats
+  return c;
+}
+// hooks for the shared import code
+const canAddToCurrent = () => !!curId;
+async function onImported(list, meta, add) {
+  if (add) {
+    pushUndo(); state.students.push(...list);
+    for (const k of ['klasse', 'fach', 'lehrer', 'raum']) if (meta[k] && !state.meta[k]) state.meta[k] = meta[k];
+    syncControls(); render(); persist(true);
+    toast(`${list.length} students added to the class.`);
+  } else {
+    const c = await createClass(list, meta);
+    toast(`Class “${classLabel(c)}” saved – ${list.length} students. Now drag them to seats or use “Random”.`, 4500);
+  }
+}
+// ---------------- rendering ----------------
+function getBox() { const b = frozenBox || bounds(state.items); return b; }
+function toView(x, y, w, h, b) {
+  if (state.flipped) { x = b.maxX - (x + w) + b.minX; y = b.maxY - (y + h) + b.minY; }
+  return { x: x - b.minX + PAD, y: y - b.minY + PAD };
+}
+function cardHTML(st) {
+  const ph = st.photo ? `<img src="${st.photo}" alt="">` : esc(initials(st.name));
+  const note = state.showNote !== false && st.note ? st.note.trim() : '';
+  const nm = note ? `<span class="n1">${esc(displayName(st.name))}</span><span class="note">${esc(note)}</span>` : esc(displayName(st.name));
+  return `<div class="card" data-sid="${st.id}"><div class="ph">${ph}</div><div class="nm"${note ? ` title="${esc(note)}"` : ''}>${nm}</div></div>`;
+}
+function render() {
+  const stage = $('stage'), b = getBox();
+  const W = b.maxX - b.minX + PAD * 2, H = b.maxY - b.minY + PAD * 2;
+  const byId = Object.fromEntries(state.students.map(s => [s.id, s]));
+  let html = '';
+  for (const it of state.items) {
+    const v = toView(it.x, it.y, it.w, it.h, b);
+    const cls = it.kind === 'desk' ? 'desk' : it.kind;
+    html += `<div class="it ${cls}${selectedItem === it.id ? ' sel' : ''}" data-item="${it.id}" style="left:${v.x}px;top:${v.y}px;width:${it.w}px;height:${it.h}px">${it.label ? `<span class="lbl">${esc(it.label)}</span>` : ''}</div>`;
+  }
+  for (const s of seats()) {
+    const v = toView(s.x, s.y, CW, CH, b), sid = state.assign[s.id], st = sid && byId[sid];
+    html += `<div class="seat" data-seat="${s.id}" style="left:${v.x}px;top:${v.y}px">${st ? cardHTML(st) : ''}</div>`;
+  }
+  stage.innerHTML = html;
+  stage.style.width = W + 'px'; stage.style.height = H + 'px';
+  stage.dataset.w = W; stage.dataset.h = H;
+  layoutScale();
+  // pool
+  const placed = new Set(Object.values(state.assign));
+  const pool = state.students.filter(s => !placed.has(s.id)).sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name), 'de'));
+  $('pool').innerHTML = pool.length ? pool.map(cardHTML).join('') :
+    `<div class="empty">${state.students.length ? 'All students are seated. ✓' : 'No students yet.<br>Load a class list (PDF) above or add students.'}</div>`;
+  $('poolCount').textContent = state.students.length ? `· ${state.students.length - pool.length}/${state.students.length} seated` : '';
+  app.classList.toggle('editing', editMode);
+  $('bDelItem').disabled = !selectedItem;
+}
+function layoutScale() {
+  const stage = $('stage'), W = +stage.dataset.w, H = +stage.dataset.h, wrap = $('roomwrap');
+  const availW = Math.max(200, wrap.clientWidth - 36), availH = Math.max(300, window.innerHeight - wrap.getBoundingClientRect().top - 40);
+  const fit = Math.min(1.25, availW / W, Math.max(availH / H, availW / W * 0.55));
+  scale = Math.max(0.2, fit * zoomF);
+  stage.style.transform = `scale(${scale})`;
+  $('roomouter').style.width = W * scale + 'px'; $('roomouter').style.height = H * scale + 'px';
+}
+
+// ---------------- controls ----------------
+function buildTplSelect() {
+  const cr = state.customRooms || [];
+  const order = ['physics', ...Object.keys(TEMPLATES).filter(k => k !== 'physics')];
+  $('selTpl').innerHTML = order.map(k => [k, TEMPLATES[k]]).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join('') +
+    (cr.length ? `<optgroup label="My rooms">${cr.map(r => `<option value="c:${r.id}">${esc(r.name)}</option>`).join('')}</optgroup>` : '');
+}
+function buildParams() {
+  // given layouts are fixed; only the empty room and own rooms can be edited
+  $('params').innerHTML = '';
+  const ed = canEditRoom();
+  $('bEdit').style.display = ed ? '' : 'none';
+  $('bUpdRoom').style.display = $('bDelRoom').style.display = isCustom(state.tpl) ? '' : 'none';
+  if (!ed && editMode) setEdit(false);
+}
+function syncControls() {
+  buildTplSelect(); $('selTpl').value = state.tpl; buildParams();
+  for (const [k, id] of [['klasse', 'mKlasse'], ['fach', 'mFach'], ['raum', 'mRaum'], ['lehrer', 'mLehrer'], ['datum', 'mDatum']]) $(id).value = state.meta[k] || '';
+  $('selLabel').value = state.label; $('chkNote').checked = state.showNote !== false;
+  $('bFlip').textContent = state.flipped ? 'View: board at bottom' : 'View: board at top';
+}
+$('selTpl').addEventListener('change', e => {
+  pushUndo(); state.tpl = e.target.value;
+  const cr = customRoom(state.tpl); state.flipped = cr ? !!cr.flipped : !!TEMPLATES[state.tpl].flip;
+  generateRoom(); selectedItem = null; syncControls(); render(); persist();
+  if (state.tpl === 'empty') { setEdit(true); toast('Add and move tables, then “Save as new room…”.', 4500); }
+});
+$('params').addEventListener('change', e => {
+  const k = e.target.dataset.p; if (!k) return;
+  const [, , , mn, mx] = TEMPLATES[state.tpl].params.find(x => x[0] === k);
+  let v = Math.round(+e.target.value); if (!isFinite(v)) v = mn; v = Math.min(mx, Math.max(mn, v)); e.target.value = v;
+  pushUndo(); state.params[state.tpl] = { ...tplParams(state.tpl), [k]: v }; generateRoom(); render(); persist();
+});
+for (const [k, id] of [['klasse', 'mKlasse'], ['fach', 'mFach'], ['raum', 'mRaum'], ['lehrer', 'mLehrer'], ['datum', 'mDatum']])
+  $(id).addEventListener('input', e => { state.meta[k] = e.target.value; persist(true); });
+$('selLabel').addEventListener('change', e => { state.label = e.target.value; render(); persist(); });
+$('chkNote').addEventListener('change', e => { state.showNote = e.target.checked; render(); persist(); });
+$('bFlip').addEventListener('click', () => { state.flipped = !state.flipped; syncControls(); render(); persist(); });
+$('zoom').addEventListener('input', e => { zoomF = e.target.value / 100; layoutScale(); });
+window.addEventListener('resize', () => layoutScale());
+$('bUndo').addEventListener('click', undo);
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); }
+  if (editMode && selectedItem && (e.key === 'Delete' || e.key === 'Backspace') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); deleteSelected(); }
+  if (e.key === 'Escape') document.querySelectorAll('.sp-modal.show').forEach(m => m.classList.remove('show'));
+});
+
+function freeSeats() { const used = new Set(Object.keys(state.assign)); return seats().filter(s => !used.has(s.id)); }
+function orderSeats(list) { return list.sort((a, b) => (a.y - b.y) || (a.x - b.x)); }
+$('bRandom').addEventListener('click', () => {
+  if (!state.students.length) return toast('No students yet.');
+  pushUndo(); state.assign = {};
+  const st = [...state.students]; for (let i = st.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [st[i], st[j]] = [st[j], st[i]]; }
+  const fs = seats(); for (let i = fs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fs[i], fs[j]] = [fs[j], fs[i]]; }
+  st.forEach((s, i) => { if (fs[i]) state.assign[fs[i].id] = s.id; });
+  if (st.length > fs.length) toast(`${st.length - fs.length} students have no seat – please add seats.`);
+  render(); persist();
+});
+$('bRandomFront').addEventListener('click', () => {
+  if (!state.students.length) return toast('No students yet.');
+  pushUndo(); state.assign = {};
+  const all = seats(), b = bounds(state.items), cx = (b.minX + b.maxX) / 2;
+  // front = close to the board (small y); rows by y, inside a row from the middle outwards
+  const front = all.sort((p, q) => (Math.round(p.y / 20) - Math.round(q.y / 20)) || (Math.abs(p.x + CW / 2 - cx) - Math.abs(q.x + CW / 2 - cx))).slice(0, state.students.length);
+  const st = shuffle(state.students), fs = shuffle(front);
+  st.forEach((s, i) => { if (fs[i]) state.assign[fs[i].id] = s.id; });
+  if (st.length > all.length) toast(`${st.length - all.length} students have no seat – please add seats.`);
+  render(); persist();
+});
+$('bAlpha').addEventListener('click', () => {
+  if (!state.students.length) return toast('No students yet.');
+  pushUndo(); state.assign = {};
+  const st = [...state.students].sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name), 'de'));
+  const fs = orderSeats(seats());
+  st.forEach((s, i) => { if (fs[i]) state.assign[fs[i].id] = s.id; });
+  render(); persist();
+});
+$('bClear').addEventListener('click', () => { if (!Object.keys(state.assign).length) return; pushUndo(); state.assign = {}; render(); persist(); toast('All cards are back in “Unseated” (↶ undoes it).'); });
+
+// ---------------- edit mode ----------------
+function setEdit(on) { editMode = on; selectedItem = null; $('editbar').classList.toggle('show', on); $('bEdit').classList.toggle('on', on); render(); }
+$('bEdit').addEventListener('click', () => setEdit(!editMode));
+$('bEditDone').addEventListener('click', () => setEdit(false));
+$('bSaveRoom').addEventListener('click', () => { $('roomName').value = ''; $('dlgRoom').classList.add('show'); setTimeout(() => $('roomName').focus(), 30); });
+$('roomCancel').addEventListener('click', () => $('dlgRoom').classList.remove('show'));
+$('roomName').addEventListener('keydown', e => { if (e.key === 'Enter') $('roomOk').click(); });
+$('roomOk').addEventListener('click', () => {
+  const name = $('roomName').value.trim(); if (!name) return $('roomName').focus();
+  if (!seats().length) return toast('Please add tables with seats first.');
+  state.customRooms = state.customRooms || [];
+  const r = { id: nid('r'), name, items: JSON.parse(JSON.stringify(state.items)), flipped: state.flipped };
+  state.customRooms.push(r); state.tpl = 'c:' + r.id;
+  $('dlgRoom').classList.remove('show'); syncControls(); persist(); toast(`Room “${name}” saved – you can now pick it under “Layout”.`, 4000);
+});
+$('bUpdRoom').addEventListener('click', () => {
+  const r = customRoom(state.tpl); if (!r) return;
+  r.items = JSON.parse(JSON.stringify(state.items)); r.flipped = state.flipped; persist(); toast(`Room “${r.name}” updated.`);
+});
+$('bDelRoom').addEventListener('click', () => {
+  const r = customRoom(state.tpl); if (!r) return;
+  if ($('bDelRoom').dataset.armed !== '1') { $('bDelRoom').dataset.armed = '1'; $('bDelRoom').textContent = 'Really delete?'; setTimeout(() => { $('bDelRoom').dataset.armed = ''; $('bDelRoom').textContent = 'Delete room'; }, 3000); return; }
+  $('bDelRoom').dataset.armed = ''; $('bDelRoom').textContent = 'Delete room';
+  pushUndo(); state.customRooms = state.customRooms.filter(x => x !== r); state.tpl = 'empty'; state.flipped = false;
+  generateRoom(); syncControls(); render(); persist(); toast(`Room “${r.name}” deleted.`);
+});
+function deleteSelected() {
+  if (!selectedItem) return; pushUndo();
+  state.items = state.items.filter(i => i.id !== selectedItem); selectedItem = null; cleanupAssign(); render(); persist();
+}
+$('bDelItem').addEventListener('click', deleteSelected);
+$('editbar').addEventListener('click', e => {
+  const k = e.target.dataset.add; if (!k) return;
+  pushUndo();
+  const b = bounds(state.items), x = Math.round((b.minX + b.maxX) / 2 - 90), y = Math.round(b.maxY + CH);
+  let it;
+  if (k === 'd1') it = hTable(x, y, 1);
+  else if (k === 'd2') it = hTable(x, y, 2);
+  else if (k === 'd2v') it = vTable(x, y - CH, 2, 'left');
+  else if (k === 'g4') it = groupTable(x, y, 2, 2);
+  else if (k === 'lab4') it = hTable(x, y, 4, 'below', 'lab');
+  else if (k === 'teacher') it = deco('teacher', x, y, 150, 62, 'Teacher’s desk');
+  else if (k === 'board') it = deco('board', x, y, 320, 22, 'BOARD');
+  else if (k === 'door') it = deco('door', x, y, 84, 14, '');
+  it.id = nid('u');
+  // put it on the first free spot (rows from the front), so the room does not grow
+  const box = o => { const bb = bounds([o]); return { x0: bb.minX - 12, y0: bb.minY - 12, x1: bb.maxX + 12, y1: bb.maxY + 12 }; };
+  const others = state.items.filter(o => o.seats?.length || o.kind === 'teacher' || o.kind === 'board').map(box);
+  const B = bounds(state.items), ib = bounds([it]), ox = it.x - ib.minX, oy = it.y - ib.minY, w = ib.maxX - ib.minX, h = ib.maxY - ib.minY;
+  const maxX = Math.max(B.maxX, B.minX + 700);
+  search: for (let yy = FRONT; yy < FRONT + 1600; yy += 20) for (let xx = Math.max(B.minX, 40); xx + w <= maxX; xx += 20) {
+    const r = { x0: xx, y0: yy, x1: xx + w, y1: yy + h };
+    if (!others.some(o => r.x0 < o.x1 && r.x1 > o.x0 && r.y0 < o.y1 && r.y1 > o.y0)) { it.x = xx + ox; it.y = yy + oy; break search; }
+  }
+  state.items.push(it); selectedItem = it.id; render(); persist();
+  toast('Added – drag it to the right place.');
+});
+
+// ---------------- pointer interaction ----------------
+let drag = null;
+function seatOf(sid) { return Object.keys(state.assign).find(k => state.assign[k] === sid); }
+function moveStudent(sid, target) {
+  const from = seatOf(sid);
+  if (target.pool) { if (from) delete state.assign[from]; return; }
+  const occ = state.assign[target.seat]; if (occ === sid) return;
+  if (from) { if (occ) state.assign[from] = occ; else delete state.assign[from]; }
+  state.assign[target.seat] = sid;
+}
+function dropTargetAt(x, y) {
+  for (const el of document.elementsFromPoint(x, y)) {
+    if (el.dataset?.seat) return { seat: el.dataset.seat, el };
+    const s = el.closest?.('[data-seat]'); if (s && s.closest('#stage')) return { seat: s.dataset.seat, el: s };
+    if (el.closest?.('[data-pool]')) return { pool: true, el: $('pool') };
+  }
+  return null;
+}
+app.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  if (e.target.closest('.sp-modal')) return;
+  const card = e.target.closest('.card[data-sid]');
+  if (card && !editMode) {
+    e.preventDefault();
+    drag = { type: 'card', sid: card.dataset.sid, el: card, sx: e.clientX, sy: e.clientY, started: false, inStage: !!card.closest('#stage') };
+    return;
+  }
+  const item = e.target.closest('.it[data-item]');
+  if (item && editMode) {
+    e.preventDefault();
+    const it = state.items.find(i => i.id === item.dataset.item);
+    selectedItem = it.id; frozenBox = bounds(state.items);
+    drag = { type: 'item', it, sx: e.clientX, sy: e.clientY, ox: it.x, oy: it.y, started: false };
+    render(); return;
+  }
+  if (editMode && e.target.closest('#stage') && !item) { selectedItem = null; render(); }
+});
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if (!drag.started && Math.hypot(dx, dy) < 5) return;
+  if (drag.type === 'card') {
+    if (!drag.started) {
+      drag.started = true; pushUndo();
+      const r = drag.el.getBoundingClientRect();
+      const g = drag.el.cloneNode(true); g.classList.add('ghost');
+      g.style.left = r.left + 'px'; g.style.top = r.top + 'px';
+      const sc = r.width / 80; g.style.transform = `scale(${sc})`;
+      drag.offX = drag.sx - r.left; drag.offY = drag.sy - r.top; drag.ghost = g;
+      app.appendChild(g); drag.el.classList.add('dragging');
+    }
+    drag.ghost.style.left = (e.clientX - drag.offX) + 'px'; drag.ghost.style.top = (e.clientY - drag.offY) + 'px';
+    const t = dropTargetAt(e.clientX, e.clientY);
+    if (drag.hl && drag.hl !== t?.el) drag.hl.classList.remove('over');
+    if (t?.el) { t.el.classList.add('over'); drag.hl = t.el; } else drag.hl = null;
+    autoScroll(e);
+  } else if (drag.type === 'item') {
+    if (!drag.started) { drag.started = true; pushUndo(); }
+    let mx = dx / scale, my = dy / scale; if (state.flipped) { mx = -mx; my = -my; }
+    drag.it.x = Math.round((drag.ox + mx) / 5) * 5; drag.it.y = Math.round((drag.oy + my) / 5) * 5;
+    render();
+  }
+});
+function autoScroll(e) {
+  const w = $('roomwrap'), r = w.getBoundingClientRect();
+  if (e.clientY > r.bottom - 40 && e.clientY < r.bottom + 10) w.scrollTop += 14;
+  else if (e.clientY < r.top + 40 && e.clientY > r.top - 10) w.scrollTop -= 14;
+}
+window.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.type === 'card') {
+    if (!d.started) { openStudent(d.sid); return; }
+    d.ghost.remove(); if (d.hl) d.hl.classList.remove('over');
+    const t = dropTargetAt(e.clientX, e.clientY);
+    if (t) moveStudent(d.sid, t.seat ? { seat: t.seat } : { pool: true });
+    else undoStack.pop();
+    render(); persist();
+  } else if (d.type === 'item') {
+    frozenBox = null; render(); if (d.started) persist();
+  }
+});
+window.addEventListener('pointercancel', () => { if (drag?.ghost) drag.ghost.remove(); if (drag?.type === 'item') frozenBox = null; drag = null; render(); });
+
+// ---------------- student dialog ----------------
+let editSid = null, editPhoto = null;
+function openStudent(sid) {
+  editSid = sid; const st = state.students.find(s => s.id === sid);
+  editPhoto = st ? st.photo : null;
+  $('stTitle').textContent = st ? 'Edit student' : 'Add student';
+  $('stName').value = st ? st.name : ''; $('stNote').value = st ? (st.note || '') : '';
+  $('stDelete').style.display = st ? '' : 'none';
+  drawStCard(); $('dlgStudent').classList.add('show'); setTimeout(() => $('stName').focus(), 30);
+}
+function drawStCard() { $('stCard').innerHTML = cardHTML({ id: 'x', name: $('stName').value || '?', note: $('stNote').value, photo: editPhoto }); }
+$('stName').addEventListener('input', drawStCard);
+$('stNote').addEventListener('input', drawStCard);
+$('stNote').addEventListener('keydown', e => { if (e.key === 'Enter') $('stOk').click(); });
+$('stName').addEventListener('keydown', e => { if (e.key === 'Enter') $('stOk').click(); });
+$('stPhoto').addEventListener('click', () => $('fileImg').click());
+$('stNoPhoto').addEventListener('click', () => { editPhoto = null; drawStCard(); });
+$('fileImg').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();
+  const c = document.createElement('canvas'); const s = Math.min(1, 300 / img.height); c.width = img.width * s; c.height = img.height * s;
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); editPhoto = c.toDataURL('image/jpeg', .85); drawStCard();
+});
+$('bNotes').addEventListener('click', () => {
+  if (!state.students.length) return toast('No students yet.');
+  const list = [...state.students].sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name), 'de'));
+  $('notesList').innerHTML = list.map(st => `<div class="row" data-n="${st.id}">${st.photo ? `<img src="${st.photo}" alt="">` : `<span class="ini">${esc(initials(st.name))}</span>`}<span>${esc(st.name)}</span><input maxlength="40" value="${esc(st.note || '')}" placeholder="e.g. football, choir …"></div>`).join('');
+  $('dlgNotes').classList.add('show'); setTimeout(() => $('notesList').querySelector('input')?.focus(), 30);
+});
+$('notesList').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return; e.preventDefault();
+  const ins = [...$('notesList').querySelectorAll('input')], i = ins.indexOf(e.target);
+  if (i >= 0 && i < ins.length - 1) ins[i + 1].focus(); else $('notesOk').click();
+});
+$('notesClear').addEventListener('click', () => $('notesList').querySelectorAll('input').forEach(i => i.value = ''));
+$('notesCancel').addEventListener('click', () => $('dlgNotes').classList.remove('show'));
+$('notesOk').addEventListener('click', () => {
+  pushUndo();
+  $('notesList').querySelectorAll('[data-n]').forEach(r => { const st = state.students.find(x => x.id === r.dataset.n); if (st) st.note = r.querySelector('input').value.trim(); });
+  $('dlgNotes').classList.remove('show');
+  if (state.showNote === false) { state.showNote = true; $('chkNote').checked = true; }
+  render(); persist(true); toast('Extra lines saved.');
+});
+$('stCancel').addEventListener('click', () => $('dlgStudent').classList.remove('show'));
+$('stOk').addEventListener('click', () => {
+  const name = $('stName').value.trim(); if (!name) return $('stName').focus();
+  pushUndo();
+  const st = state.students.find(s => s.id === editSid);
+  const note = $('stNote').value.trim();
+  if (st) { st.name = name; st.photo = editPhoto; st.note = note; } else state.students.push({ id: nid('s'), name, photo: editPhoto, note });
+  $('dlgStudent').classList.remove('show');
+  if (!curId) { createClass(state.students, { ...state.meta }); return; }
+  render(); persist(true);
+});
+$('stDelete').addEventListener('click', () => {
+  pushUndo(); state.students = state.students.filter(s => s.id !== editSid); cleanupAssign();
+  $('dlgStudent').classList.remove('show'); render(); persist(true); toast('Student deleted (↶ undoes it).');
+});
+$('bAddStudent').addEventListener('click', () => openStudent(null));
+
+// ---------------- class library (shared) ----------------
+// Classes (student list + photos) are kept in the browser's IndexedDB and shown as tiles.
+const DB = (() => {
+  let dbp = null, mem = null;
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise(res => {
+      try {
+        const r = indexedDB.open('klassen-werkstatt', 1);
+        r.onupgradeneeded = () => { const d = r.result; for (const n of ['classes', 'plans']) if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'id' }); };
+        r.onsuccess = () => res(r.result); r.onerror = () => res(null); r.onblocked = () => res(null);
+      } catch (e) { res(null); }
+    }).then(d => { if (!d) { mem = { classes: new Map(), plans: new Map() }; api.persistent = false; } return d; });
+    return dbp;
+  }
+  async function run(store, mode, fn) {
+    const d = await open();
+    if (!d) return fn(null, mem[store]).result;
+    return new Promise((res, rej) => { const t = d.transaction(store, mode), r = fn(t.objectStore(store)); t.oncomplete = () => res(r ? r.result : undefined); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
+  }
+  const api = {
+    persistent: true,
+    all: s => run(s, 'readonly', (os, m) => os ? os.getAll() : { result: [...m.values()] }),
+    get: (s, id) => run(s, 'readonly', (os, m) => os ? os.get(id) : { result: m.get(id) }),
+    put: (s, v) => run(s, 'readwrite', (os, m) => os ? os.put(v) : (m.set(v.id, JSON.parse(JSON.stringify(v))), { result: v.id })),
+    del: (s, id) => run(s, 'readwrite', (os, m) => os ? os.delete(id) : (m.delete(id), { result: undefined }))
+  };
+  return api;
+})();
+const classLabel = c => (c.meta && c.meta.klasse) || 'Unnamed';
+function classTileHTML(c, o = {}) {
+  const m = c.meta || {}, ph = (c.students || []).filter(s => s.photo).slice(0, 4);
+  return `<div class="ktile${o.active ? ' active' : ''}${o.selected ? ' sel' : ''}" data-k="${c.id}" title="${esc([m.klasse && 'Class ' + m.klasse, m.fach, m.lehrer, m.datum].filter(Boolean).join(' · '))}">` +
+    (o.check ? `<span class="kchk">${o.selected ? '✓' : ''}</span>` : '') +
+    `<div class="kmos">${ph.map(s => `<img src="${s.photo}" alt="">`).join('') || '<span>👥</span>'}</div>` +
+    `<div class="ktxt"><b>${esc(classLabel(c))}${m.fach ? ' · ' + esc(m.fach) : ''}</b><small>${(c.students || []).length} students${m.datum ? ' · ' + esc(m.datum) : ''}</small></div>` +
+    `<button class="kdel" title="Delete class">×</button></div>`;
+}
+// first click arms, second click (within 3 s) deletes
+function armDelete(btn, fn) {
+  if (btn.classList.contains('armed')) { btn.classList.remove('armed'); fn(); return; }
+  btn.classList.add('armed'); btn.textContent = 'Delete?';
+  setTimeout(() => { btn.classList.remove('armed'); btn.textContent = '×'; }, 3000);
+}
+function newClassRecord(list, meta) {
+  return { id: nid('k'), meta: Object.assign({ klasse: '', fach: '', raum: '', lehrer: '', datum: '' }, meta || {}), students: list, created: Date.now() };
+}
+
+// ---------------- PDF import ----------------
+let pdfjs = null, imp = null;
+async function loadPdfJs() {
+  if (pdfjs) return pdfjs;
+  pdfjs = await import(PDFJS_URL);
+  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+  return pdfjs;
+}
+const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
+const app2 = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+
+async function analysePage(page, lib) {
+  const base = page.getViewport({ scale: 1 });
+  const s = Math.min(3, 2200 / Math.max(base.width, base.height));
+  const vp = page.getViewport({ scale: s });
+  const canvas = document.createElement('canvas'); canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+  const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, canvas, viewport: vp }).promise;
+  // images via operator list
+  const ops = await page.getOperatorList(), O = lib.OPS, imgs = [];
+  let ctm = [1, 0, 0, 1, 0, 0]; const stack = [];
+  const imgOps = new Set([O.paintImageXObject, O.paintInlineImageXObject, O.paintJpegXObject].filter(v => v !== undefined));
+  const addBox = m => {
+    const f = mul(vp.transform, m), pts = [app2(f, 0, 0), app2(f, 1, 0), app2(f, 0, 1), app2(f, 1, 1)];
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    let x0 = Math.max(0, Math.min(...xs)), y0 = Math.max(0, Math.min(...ys)), x1 = Math.min(canvas.width, Math.max(...xs)), y1 = Math.min(canvas.height, Math.max(...ys));
+    if (x1 - x0 > 4 && y1 - y0 > 4) imgs.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+  };
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i], a = ops.argsArray[i];
+    if (fn === O.save) stack.push(ctm);
+    else if (fn === O.restore) ctm = stack.pop() || ctm;
+    else if (fn === O.transform) ctm = mul(ctm, Array.from(a));
+    else if (fn === O.paintFormXObjectBegin) { stack.push(ctm); if (a && a[0]) ctm = mul(ctm, Array.from(a[0])); }
+    else if (fn === O.paintFormXObjectEnd) ctm = stack.pop() || ctm;
+    else if (imgOps.has(fn)) addBox(ctm);
+    else if (fn === O.paintImageXObjectRepeat && a) {
+      const [, sx, sy, pos] = a; for (let j = 0; j < pos.length; j += 2) addBox(mul(ctm, [sx, 0, 0, sy, pos[j], pos[j + 1]]));
+    }
+  }
+  // text
+  const tc = await page.getTextContent(), texts = [];
+  for (const it of tc.items) {
+    if (!it.str || !it.str.trim()) continue;
+    const m = mul(vp.transform, it.transform), fh = Math.hypot(m[2], m[3]) || 10;
+    const w = (it.width || it.str.length * 5) * s;
+    texts.push({ str: it.str, x: m[4], y: m[5] - fh * .85, w, h: fh, base: m[5] });
+  }
+  return { canvas, W: canvas.width, H: canvas.height, imgs, texts };
+}
+
+function filterImages(pg) {
+  const A = pg.W * pg.H;
+  let c = pg.imgs.filter(b => Math.min(b.w, b.h) > Math.min(pg.W, pg.H) * 0.035 && b.w * b.h < A * 0.4);
+  // dedupe overlapping
+  const out = [];
+  for (const b of c.sort((p, q) => q.w * q.h - p.w * p.h)) {
+    if (out.some(o => { const ix = Math.max(0, Math.min(o.x + o.w, b.x + b.w) - Math.max(o.x, b.x)), iy = Math.max(0, Math.min(o.y + o.h, b.y + b.h) - Math.max(o.y, b.y)); return ix * iy > 0.6 * Math.min(o.w * o.h, b.w * b.h); })) continue;
+    out.push(b);
+  }
+  return out;
+}
+function joinLines(items) {
+  if (!items.length) return [];
+  items = [...items].sort((a, b) => a.base - b.base || a.x - b.x);
+  const lines = [];
+  for (const t of items) {
+    const L = lines.find(l => Math.abs(l.base - t.base) < t.h * .5);
+    if (L) L.items.push(t); else lines.push({ base: t.base, items: [t] });
+  }
+  return lines.sort((a, b) => a.base - b.base).map(l => {
+    l.items.sort((a, b) => a.x - b.x);
+    let s = ''; let prevEnd = null;
+    for (const t of l.items) { if (prevEnd !== null && t.x - prevEnd > t.h * .15 && !s.endsWith(' ') && !t.str.startsWith(' ')) s += ' '; s += t.str; prevEnd = t.x + t.w; }
+    return { text: s.replace(/\s+/g, ' ').trim(), base: l.base, h: Math.max(...l.items.map(t => t.h)) };
+  }).filter(l => l.text);
+}
+// header info (Kurs / Klasse / Fach / Lehrperson) from the first page
+function headerSegments(texts) {
+  const lines = [];
+  for (const t of [...texts].sort((a, b) => a.base - b.base || a.x - b.x)) {
+    const L = lines.find(l => Math.abs(l.base - t.base) < t.h * .5);
+    if (L) L.items.push(t); else lines.push({ base: t.base, items: [t] });
+  }
+  const segs = [];
+  for (const l of lines.sort((a, b) => a.base - b.base)) {
+    l.items.sort((a, b) => a.x - b.x); let cur = null;
+    for (const t of l.items) {
+      if (cur && t.x - cur.end > t.h * 2.5) { segs.push(cur.s); cur = null; }
+      if (!cur) cur = { s: '', end: 0 };
+      if (cur.s && t.x - cur.end > t.h * .15 && !cur.s.endsWith(' ')) cur.s += ' ';
+      cur.s += t.str; cur.end = t.x + t.w;
+    }
+    if (cur) segs.push(cur.s);
+  }
+  return segs.map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+// keep only first first-name + (first part of) last name:
+// "Stefan Alexandru Muster" -> "Stefan Muster", "Axelle Krayenbühl-Tapponnier" -> "Axelle Krayenbühl",
+// "Muster-Beispiel, Stefan Alexandru" -> "Stefan Muster"
+function shortName(n) {
+  n = (n || '').replace(/\s+/g, ' ').trim();
+  if (n.includes(',')) { const [a, ...b] = n.split(','); return (b.join(',').trim().split(' ')[0] + ' ' + a.trim().split(/[\s-]+/)[0]).trim(); }
+  const w = n.split(' ');
+  return w.length < 2 ? n : w[0] + ' ' + w[w.length - 1].split('-')[0];
+}
+function detectMeta(texts) {
+  const m = {}, cut = v => v.split(/\s{2,}|\s[·|•]\s/)[0].trim();
+  for (const s of headerSegments(texts)) {
+    let r;
+    if (!m.fach && (r = s.match(/^Kurs\s*:\s*(.+?)\s*\(([^)]+)\)/i))) { m.fach = r[1].trim(); m.klasse = r[2].trim(); continue; }
+    if (!m.fach && (r = s.match(/^Kurs\s*:\s*(.+)/i))) { m.fach = cut(r[1]); continue; }
+    if (!m.fach && (r = s.match(/^Fach\s*:\s*(.+)/i))) { m.fach = cut(r[1]); continue; }
+    if (!m.klasse && (r = s.match(/^Klasse\s*:?\s*(\d{1,2}\s?[a-zA-Z]{0,3})\b/i))) { m.klasse = r[1].replace(/\s/g, ''); continue; }
+    if (!m.lehrer && (r = s.match(/^(?:Klassen)?(?:Lehrperson|Lehrkraft|Lehrer(?:in|\/in)?)\s*:\s*(.+)/i))) { m.lehrer = shortName(cut(r[1])); continue; }
+    if (!m.raum && (r = s.match(/^(?:Zimmer|Raum)\s*:\s*(.+)/i))) { m.raum = cut(r[1]); continue; }
+  }
+  return m;
+}
+const isJunk = l => /^[\W\d_]*$/.test(l) || /^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/.test(l);
+function nameFromLines(lines) {
+  // take neighbouring lines only (stops before footers / far-away text)
+  const out = []; let prev = null;
+  for (const l of lines) {
+    if (prev && l.base - prev.base > Math.max(l.h, prev.h) * 2.2) break;
+    prev = l; if (!isJunk(l.text)) out.push(l.text); if (out.length >= 2) break;
+  }
+  return out.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function cropToDataURL(src, x, y, w, h, trim) {
+  x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y)); w = Math.round(Math.min(w, src.width - x)); h = Math.round(Math.min(h, src.height - y));
+  if (w < 4 || h < 4) return null;
+  if (trim) {
+    const d = src.getContext('2d').getImageData(x, y, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let j = 0; j < h; j += 2) for (let i = 0; i < w; i += 2) { const k = (j * w + i) * 4; if (d[k] + d[k + 1] + d[k + 2] < 690) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; } }
+    if (x1 < 0) return null;
+    if ((x1 - x0) * (y1 - y0) < w * h * 0.06) return null;
+    x += x0; y += y0; w = x1 - x0 + 2; h = y1 - y0 + 2;
+  }
+  const s = Math.min(1, 320 / h), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+  c.getContext('2d').drawImage(src, x, y, w, h, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', .86);
+}
+
+function detectAuto() {
+  const res = [];
+  for (const pg of imp.pages) {
+    const imgs = filterImages(pg);
+    if (imgs.length >= 3) { // drop outliers (logos) by area
+      const areas = imgs.map(b => b.w * b.h).sort((a, b) => a - b), med = areas[Math.floor(areas.length / 2)];
+      for (let i = imgs.length - 1; i >= 0; i--) { const a = imgs[i].w * imgs[i].h; if (a < med * .4 || a > med * 2.5) imgs.splice(i, 1); }
+    }
+    imgs.sort((a, b) => (Math.abs(a.y - b.y) > Math.min(a.h, b.h) * .5 ? a.y - b.y : a.x - b.x));
+    const buckets = imgs.map(() => []), used = new Set();
+    // pass 1: text below photo
+    pg.texts.forEach((t, ti) => {
+      const cx = t.x + t.w / 2; let best = -1, bd = Infinity;
+      imgs.forEach((b, bi) => {
+        if (cx < b.x - b.w * .3 || cx > b.x + b.w * 1.3) return;
+        const d = t.y - (b.y + b.h); if (d < -t.h * .6 || d > b.h * .75) return;
+        if (d < bd) { bd = d; best = bi; }
+      });
+      if (best >= 0) { buckets[best].push(t); used.add(ti); }
+    });
+    // pass 2: text right of photo (list layout) / above
+    imgs.forEach((b, bi) => {
+      if (buckets[bi].length) return;
+      const right = pg.texts.filter((t, ti) => !used.has(ti) && t.y + t.h / 2 > b.y && t.y + t.h / 2 < b.y + b.h && t.x >= b.x + b.w - 4 && t.x < b.x + b.w + Math.max(3 * b.w, 250));
+      if (right.length) {
+        const lines = joinLines(right).filter(l => !isJunk(l.text));
+        if (lines.length) { buckets[bi] = [{ str: lines[0].text, x: 0, y: 0, w: 0, h: 1, base: 0 }]; return; }
+      }
+      const above = pg.texts.filter((t, ti) => !used.has(ti) && t.x + t.w / 2 > b.x - b.w * .3 && t.x + t.w / 2 < b.x + b.w * 1.3 && b.y - (t.y + t.h) < b.h * .5 && t.y + t.h <= b.y + 4);
+      buckets[bi] = above;
+    });
+    imgs.forEach((b, bi) => {
+      res.push({ id: nid('s'), photo: cropToDataURL(pg.canvas, b.x, b.y, b.w, b.h, false), raw: nameFromLines(joinLines(buckets[bi])), keep: true });
+    });
+  }
+  return res;
+}
+
+function gridCfg() { const g = id => +$(id).value || 0; return { rows: Math.max(1, g('gRows')), cols: Math.max(1, g('gCols')), mt: g('gMt') / 100, mb: g('gMb') / 100, ml: g('gMl') / 100, mr: g('gMr') / 100, nz: g('gNz') / 100 }; }
+function gridCells(pg, c) {
+  const L = pg.W * c.ml, T = pg.H * c.mt, gw = pg.W * (1 - c.ml - c.mr), gh = pg.H * (1 - c.mt - c.mb), cw = gw / c.cols, ch = gh / c.rows, out = [];
+  for (let r = 0; r < c.rows; r++) for (let k = 0; k < c.cols; k++) {
+    const x = L + k * cw, y = T + r * ch, pad = Math.min(cw, ch) * .03;
+    out.push({ cell: { x, y, w: cw, h: ch }, photo: { x: x + pad, y: y + pad, w: cw - 2 * pad, h: ch * (1 - c.nz) - pad }, name: { x, y: y + ch * (1 - c.nz), w: cw, h: ch * c.nz } });
+  }
+  return out;
+}
+const inside = (t, r) => { const cx = t.x + t.w / 2, cy = t.y + t.h / 2; return cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h; };
+function detectGrid() {
+  const c = gridCfg(), res = []; let n = 0;
+  for (const pg of imp.pages) for (const g of gridCells(pg, c)) {
+    const photo = cropToDataURL(pg.canvas, g.photo.x, g.photo.y, g.photo.w, g.photo.h, true);
+    if (!photo) continue;
+    let tx = pg.texts.filter(t => inside(t, g.name)); if (!tx.length) tx = pg.texts.filter(t => inside(t, g.cell));
+    n++; res.push({ id: nid('s'), photo, raw: nameFromLines(joinLines(tx)) || `Student ${n}`, keep: true });
+  }
+  return res;
+}
+function drawPreview() {
+  if (!imp) return;
+  const pg = imp.pages[imp.pi], cv = $('prevCanvas'), s = Math.min(1, 700 / pg.W);
+  cv.width = pg.W * s; cv.height = pg.H * s; const ctx = cv.getContext('2d');
+  ctx.drawImage(pg.canvas, 0, 0, cv.width, cv.height);
+  ctx.lineWidth = 2;
+  if (imp.mode === 'grid') {
+    for (const g of gridCells(pg, gridCfg())) {
+      ctx.strokeStyle = 'rgba(37,87,214,.9)'; ctx.strokeRect(g.photo.x * s, g.photo.y * s, g.photo.w * s, g.photo.h * s);
+      ctx.fillStyle = 'rgba(230,140,0,.18)'; ctx.fillRect(g.name.x * s, g.name.y * s, g.name.w * s, g.name.h * s);
+    }
+  } else {
+    ctx.strokeStyle = 'rgba(37,87,214,.9)'; for (const b of filterImages(pg)) ctx.strokeRect(b.x * s, b.y * s, b.w * s, b.h * s);
+  }
+  $('pLbl').textContent = `Page ${imp.pi + 1} / ${imp.pages.length}`;
+  $('pPrev').disabled = imp.pi === 0; $('pNext').disabled = imp.pi >= imp.pages.length - 1;
+}
+function fmtName(raw) {
+  const n = (raw || '').replace(/\s+/g, ' ').trim(), short = $('dblName').checked, swap = $('nameFmt').value === 'swap';
+  if (n.includes(',')) { // "Nachname(n), Vorname(n)"
+    const [a, ...b] = n.split(','), firsts = b.join(',').trim();
+    const last = short ? a.trim().split(/[\s-]+/)[0] : a.trim(), first = short ? firsts.split(' ')[0] : firsts;
+    return (swap ? first + ' ' + last : last + ', ' + first).trim();
+  }
+  return short ? shortName(n) : n;
+}
+function renderResults() {
+  const list = imp.results.filter(r => r.keep);
+  $('impRes').innerHTML = list.map(r => `<div class="imp-c" data-r="${r.id}"><button class="x" title="Remove">×</button>${r.photo ? `<img src="${r.photo}" alt="">` : '<img alt="">'}<input value="${esc(r.name ?? fmtName(r.raw))}" placeholder="Name"></div>`).join('') || '<div style="color:var(--muted)">No students detected.</div>';
+  $('impCount').textContent = `${list.length} students detected`;
+  $('impOk').disabled = !list.length; $('impOk').textContent = `Import ${list.length}`;
+}
+function runDetect() {
+  imp.results = imp.mode === 'grid' ? detectGrid() : detectAuto();
+  const msg = $('impMsg'); msg.textContent = '';
+  if (imp.mode === 'auto' && imp.results.length < 2) {
+    msg.style.display = ''; msg.textContent = 'No individual photos were found in this PDF (e.g. a scanned list), so grid mode is used: set rows/columns and margins on the left until the blue frames sit on the photos.';
+    imp.mode = 'grid'; setTabs(); imp.results = detectGrid();
+  } else if (imp.mode === 'auto') {
+    msg.style.display = ''; msg.textContent = 'Photos and names were detected automatically. Please check the names – remove wrong cards with ×. If the split is wrong, switch to “Grid” at the top.';
+  } else msg.style.display = 'none';
+  const mt = imp.meta, parts = [mt.klasse && 'Class ' + mt.klasse, mt.fach && 'Subject ' + mt.fach, mt.lehrer && 'Teacher ' + mt.lehrer, mt.raum && 'Room ' + mt.raum].filter(Boolean);
+  if (parts.length) { msg.style.display = ''; msg.textContent += (msg.textContent ? ' ' : '') + 'Detected from the PDF header: ' + parts.join(' · ') + '.'; }
+  $('impGrid').classList.toggle('nopreview', false);
+  $('gridSet').style.display = imp.mode === 'grid' ? '' : 'none';
+  drawPreview(); renderResults();
+}
+function setTabs() { document.querySelectorAll('#impTabs button').forEach(b => b.classList.toggle('on', b.dataset.mode === imp.mode)); }
+function openImport() {
+  imp = null; $('impDrop').style.display = ''; $('impWork').style.display = 'none'; $('impTabs').style.display = 'none';
+  $('impOk').disabled = true; $('impCount').textContent = ''; $('impReplace').checked = false;
+  $('impReplace').parentElement.style.display = canAddToCurrent() ? '' : 'none';
+  $('dlgImport').classList.add('show');
+}
+async function handlePdf(file) {
+  if (!file) return;
+  busy(true, 'Reading PDF …');
+  try {
+    const lib = await loadPdfJs();
+    const doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let i = 1; i <= Math.min(doc.numPages, 12); i++) { busy(true, `Analysing page ${i} of ${doc.numPages} …`); pages.push(await analysePage(await doc.getPage(i), lib)); }
+    imp = { pages, pi: 0, mode: 'auto', results: [], meta: detectMeta(pages[0].texts) };
+    $('impDrop').style.display = 'none'; $('impWork').style.display = ''; $('impTabs').style.display = '';
+    setTabs(); runDetect();
+  } catch (err) {
+    console.error(err);
+    toast(String(err).includes('import') || String(err).includes('fetch') ? 'Could not load the PDF library (internet connection?).' : 'Could not read the PDF.', 5000);
+  } finally { busy(false); }
+}
+$('bImport').addEventListener('click', openImport);
+$('bPick').addEventListener('click', () => $('filePdf').click());
+$('filePdf').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; handlePdf(f); });
+const dz = $('impDrop');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); const f = [...e.dataTransfer.files].find(f => /pdf$/i.test(f.name) || f.type === 'application/pdf'); if (f) handlePdf(f); else toast('Please use a PDF file.'); });
+$('impTabs').addEventListener('click', e => { const m = e.target.dataset.mode; if (!m || !imp) return; imp.mode = m; setTabs(); runDetect(); });
+$('gridSet').addEventListener('input', () => { if (!imp) return; clearTimeout(runDetect._t); drawPreview(); runDetect._t = setTimeout(runDetect, 350); });
+$('pPrev').addEventListener('click', () => { if (imp.pi > 0) { imp.pi--; drawPreview(); } });
+$('pNext').addEventListener('click', () => { if (imp.pi < imp.pages.length - 1) { imp.pi++; drawPreview(); } });
+$('nameFmt').addEventListener('change', () => { if (imp) { imp.results.forEach(r => delete r.name); renderResults(); } });
+$('dblName').addEventListener('change', () => { if (imp) { imp.results.forEach(r => delete r.name); renderResults(); } });
+$('impRes').addEventListener('input', e => { const c = e.target.closest('[data-r]'); if (c) imp.results.find(r => r.id === c.dataset.r).name = e.target.value; });
+$('impRes').addEventListener('click', e => { if (!e.target.classList.contains('x')) return; const c = e.target.closest('[data-r]'); imp.results.find(r => r.id === c.dataset.r).keep = false; renderResults(); });
+$('impCancel').addEventListener('click', () => $('dlgImport').classList.remove('show'));
+$('impOk').addEventListener('click', () => {
+  const list = imp.results.filter(r => r.keep).map((r, i) => ({ id: nid('s'), name: (r.name ?? fmtName(r.raw)).trim() || `Student ${i + 1}`, photo: r.photo }));
+  $('dlgImport').classList.remove('show');
+  onImported(list, imp.meta || {}, $('impReplace').checked && canAddToCurrent());
+});
+
+// ---------------- export ----------------
+async function saveFile(filename, blob) {
+  try {
+    if (window.claude && typeof window.claude.use === 'function') {
+      const d = await window.claude.use('downloads');
+      if (d) { await d.save({ filename, data: blob }); return; }
+    }
+  } catch (e) { if (e && e.code === 'declined') return; if (e && e.code && !['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(e.code)) { toast('Could not save: ' + (e.message || e.code)); return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+function fileBase() { const m = state.meta, d = new Date(), ymd = '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); return ['SeatingPlan', m.klasse, m.fach].filter(Boolean).join('_').replace(/[^\wäöüÄÖÜß-]+/g, '-') + '_' + ymd; }
+const imgCache = new Map();
+async function loadImg(src) {
+  if (imgCache.has(src)) return imgCache.get(src);
+  const p = new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+  imgCache.set(src, p); return p;
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function wrapText(ctx, text, maxW, maxLines) {
+  const words = text.split(/\s+/), lines = []; let cur = '';
+  for (const w of words) { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w; } }
+  if (cur) lines.push(cur);
+  return lines.length <= maxLines ? lines : null;
+}
+async function drawPlan(pxW, pxH) {
+  const c = document.createElement('canvas'); c.width = pxW; c.height = pxH; const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH);
+  const u = pxW / 1000, m = state.meta, M = 40 * u;
+  ctx.fillStyle = '#1f2933'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `600 ${22 * u}px system-ui, sans-serif`; ctx.fillText('Seating plan' + (m.klasse ? ' – Class ' + m.klasse : '') + (m.fach ? ' – ' + m.fach : ''), M, M + 14 * u);
+  ctx.font = `${12 * u}px system-ui, sans-serif`; ctx.fillStyle = '#5b6672';
+  ctx.fillText([m.fach && 'Subject: ' + m.fach, m.raum && 'Room: ' + m.raum, m.lehrer && 'Teacher: ' + m.lehrer, m.datum].filter(Boolean).join('   ·   '), M, M + 34 * u);
+  const top = M + 50 * u, bottom = pxH - M - 16 * u;
+  const b = bounds(state.items), W = b.maxX - b.minX + PAD * 2, H = b.maxY - b.minY + PAD * 2;
+  const s = Math.min((pxW - 2 * M) / W, (bottom - top) / H), ox = (pxW - W * s) / 2, oy = top;
+  const X = v => ox + v * s, Y = v => oy + v * s;
+  ctx.strokeStyle = '#9aa5b1'; ctx.lineWidth = 2 * u; ctx.strokeRect(X(0), Y(0), W * s, H * s);
+  const byId = Object.fromEntries(state.students.map(st => [st.id, st]));
+  const styles = { desk: ['#ead9bb', '#c4a676'], lab: ['#c9d1d9', '#6b7785'], pc: ['#dfe6ee', '#8796a8'], bench: ['#eef1f4', '#4b5563'], board: ['#2f4a3c', '#2f4a3c'], teacher: ['#d9c39b', '#a88a57'], labteacher: ['#aeb8c2', '#56616d'], door: ['#ffffff', '#8a6d3b'], window: ['#cfe6f7', '#7aa7c9'], notaus: ['#d32f2f', '#ffeb3b'] };
+  for (const it of state.items) {
+    const v = toView(it.x, it.y, it.w, it.h, b), [f, st] = styles[it.kind] || styles.desk;
+    ctx.fillStyle = f; ctx.strokeStyle = st; ctx.lineWidth = 1.5 * s;
+    if (it.kind === 'notaus') { ctx.beginPath(); ctx.arc(X(v.x + it.w / 2), Y(v.y + it.h / 2), it.w / 2 * s, 0, 7); ctx.fill(); ctx.stroke(); }
+    else { rr(ctx, X(v.x), Y(v.y), it.w * s, it.h * s, 3 * s); ctx.fill(); ctx.stroke(); }
+    if (it.label && it.kind !== 'window' && it.kind !== 'notaus') {
+      ctx.fillStyle = it.kind === 'board' ? '#e8efe9' : '#3d3322'; ctx.font = `600 ${12 * s}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(it.label, X(v.x + it.w / 2), Y(v.y + it.h / 2)); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    }
+  }
+  for (const se of seats()) {
+    const v = toView(se.x, se.y, CW, CH, b), x = X(v.x), y = Y(v.y), w = CW * s, h = CH * s, sid = state.assign[se.id], stu = sid && byId[sid];
+    if (!stu) { ctx.setLineDash([4 * s, 3 * s]); ctx.strokeStyle = '#b9c2cc'; ctx.lineWidth = 1.2 * s; rr(ctx, x, y, w, h, 6 * s); ctx.stroke(); ctx.setLineDash([]); continue; }
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#9aa5b1'; ctx.lineWidth = 1 * s; rr(ctx, x, y, w, h, 6 * s); ctx.fill();
+    const phH = h - 28 * s;
+    ctx.save(); rr(ctx, x, y, w, h, 6 * s); ctx.clip();
+    const img = stu.photo ? await loadImg(stu.photo) : null;
+    if (img) { const r = Math.max(w / img.width, phH / img.height), iw = img.width * r, ih = img.height * r; ctx.drawImage(img, x + (w - iw) / 2, y + (phH - ih) * .2, iw, ih); }
+    else { ctx.fillStyle = '#e6eaef'; ctx.fillRect(x, y, w, phH); ctx.fillStyle = '#7b8794'; ctx.font = `600 ${22 * s}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials(stu.name), x + w / 2, y + phH / 2); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+    ctx.fillStyle = '#fff'; ctx.fillRect(x, y + phH, w, h - phH);
+    ctx.restore(); rr(ctx, x, y, w, h, 6 * s); ctx.stroke();
+    // name
+    const name = displayName(stu.name), note = state.showNote !== false && stu.note ? stu.note.trim() : ''; let fs = 11 * s, lines;
+    for (; fs > 6 * s; fs -= .5 * s) { ctx.font = `600 ${fs}px system-ui, sans-serif`; lines = wrapText(ctx, name, w - 5 * s, note ? 1 : 2); if (lines) break; }
+    if (!lines) lines = [name];
+    ctx.fillStyle = '#1f2933'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const cy = y + phH + (h - phH) / 2, lh = fs * 1.1;
+    if (note) {
+      ctx.fillText(lines[0], x + w / 2, cy - 5.5 * s, w - 4 * s);
+      ctx.font = `${8.5 * s}px system-ui, sans-serif`; ctx.fillStyle = '#5b6672';
+      ctx.fillText(note, x + w / 2, cy + 6 * s, w - 4 * s);
+    } else lines.forEach((l, i) => ctx.fillText(l, x + w / 2, cy + (i - (lines.length - 1) / 2) * lh, w - 4 * s));
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  ctx.font = `${9 * u}px system-ui, sans-serif`; ctx.fillStyle = '#8a95a1';
+  ctx.fillText(`View: ${state.flipped ? 'teacher’s view (board at bottom)' : 'board at top'}   ·   created ${new Date().toLocaleDateString('en-GB')}`, M, pxH - M + 6 * u);
+  return c;
+}
+function planOrientation() { const b = bounds(state.items); return (b.maxY - b.minY) > (b.maxX - b.minX) * 1.15 ? 'portrait' : 'landscape'; }
+function jpegToPdf(bytes, iw, ih, pw, ph) {
+  const enc = new TextEncoder(), chunks = [], offs = []; let len = 0;
+  const push = d => { const u = typeof d === 'string' ? enc.encode(d) : d; chunks.push(u); len += u.length; };
+  const obj = (n, body) => { offs[n] = len; push(`${n} 0 obj\n`); body(); push('\nendobj\n'); };
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  obj(1, () => push('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2, () => push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'));
+  obj(3, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`));
+  obj(4, () => { push(`<< /Type /XObject /Subtype /Image /Width ${iw} /Height ${ih} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`); push(bytes); push('\nendstream'); });
+  const content = `q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;
+  obj(5, () => push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+  const xref = len;
+  let x = `xref\n0 6\n0000000000 65535 f \n`; for (let i = 1; i <= 5; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+  push(x + `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  const out = new Uint8Array(len); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; } return out;
+}
+async function canvasBytes(c, type, q) { const b = await new Promise(r => c.toBlob(r, type, q)); return new Uint8Array(await b.arrayBuffer()); }
+$('bPdf').addEventListener('click', async () => {
+  busy(true, 'Creating PDF …');
+  try {
+    const land = planOrientation() === 'landscape', pw = land ? 842 : 595, ph = land ? 595 : 842;
+    const pxW = land ? 3300 : 2340, pxH = Math.round(pxW * ph / pw);
+    const c = await drawPlan(pxW, pxH), jpg = await canvasBytes(c, 'image/jpeg', .9);
+    await saveFile(fileBase() + '.pdf', new Blob([jpegToPdf(jpg, c.width, c.height, pw, ph)], { type: 'application/pdf' }));
+  } catch (e) { console.error(e); toast('PDF export failed.'); } finally { busy(false); }
+});
+// ---------------- init ----------------
+buildTplSelect();
+try { state.customRooms = (JSON.parse(localStorage.getItem(ROOMS_KEY) || 'null') || []).map(r => ({ ...r, items: stripDeco(r.items) })); } catch (e) { }
+generateRoom(); syncControls(); render(); renderClasses(); $('bUndo').disabled = true;
+(async () => {
+  classes = await DB.all('classes') || [];
+  // move the old single plan (before class library) into a class
+  let old = null; try { old = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { }
+  if (old && Array.isArray(old.items)) {
+    if (!state.customRooms.length && Array.isArray(old.customRooms)) state.customRooms = old.customRooms;
+    if (old.students && old.students.length) {
+      const c = newClassRecord(old.students, old.meta); classes.push(c); await DB.put('classes', c);
+      await DB.put('plans', { id: c.id, tpl: old.tpl, params: old.params || {}, items: old.items.filter(i => old.tpl !== 'raemi' || i.kind !== 'door'), assign: old.assign || {}, flipped: !!old.flipped, label: old.label || 'full' });
+      try { localStorage.setItem(LAST_KEY, c.id); } catch (e) { }
+    }
+    try { localStorage.removeItem(STORE_KEY); localStorage.setItem(ROOMS_KEY, JSON.stringify(state.customRooms)); } catch (e) { }
+  }
+  let last = null; try { last = localStorage.getItem(LAST_KEY); } catch (e) { }
+  if (last && classes.some(c => c.id === last)) await openClass(last);
+  else {
+    try { const p = JSON.parse(localStorage.getItem(NOCLASS_KEY) || 'null'); if (p && Array.isArray(p.items)) { Object.assign(state, p); state.items = stripDeco(p.items); } } catch (e) { }
+    if (isCustom(state.tpl) && !customRoom(state.tpl)) { state.tpl = 'raemi'; generateRoom(); }
+    syncControls(); render(); renderClasses();
+  }
+  if (!DB.persistent) toast('Note: classes cannot be stored permanently in this browser.', 5000);
+})();
+window.SitzplanWerkstatt = { get state() { return state; }, get classes() { return classes; }, flush };
+})();
+</script>
+</body>
+</html>
