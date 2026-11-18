@@ -6,8 +6,8 @@ Load a class list as PDF (with photos and names). The tool cuts it into
 individual cards, which you drag onto the seats of a room layout. Then
 export the seating plan as a PDF.
 
-**Try it:** open `index.html` in a browser, then load `example/example-class-list.pdf`
-(fictional names and cartoon pictures).
+**Try it:** open the app and click **Load class list (PDF) → Try with example class**
+(fictional names and cartoon pictures, from `example/example-class-list.pdf`).
 
 ## Features
 
