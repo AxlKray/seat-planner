@@ -970,6 +970,8 @@ $('stDelete').addEventListener('click', () => {
 $('bAddStudent').addEventListener('click', () => openStudent(null));
 
 // ---------------- class library (shared) ----------------
+/* Safari compatibility: ReadableStream is not async-iterable there, pdf.js needs it (text extraction, image decoding). */
+(function () { try { if (typeof ReadableStream !== 'undefined' && !ReadableStream.prototype[Symbol.asyncIterator]) { const it = async function* () { const r = this.getReader(); try { for (;;) { const { done, value } = await r.read(); if (done) return; yield value; } } finally { r.releaseLock(); } }; ReadableStream.prototype[Symbol.asyncIterator] = it; if (!ReadableStream.prototype.values) ReadableStream.prototype.values = it; } } catch (e) { } })();
 // Classes (student list + photos) are kept in the browser's IndexedDB and shown as tiles.
 const DB = (() => {
   let dbp = null, mem = null;
