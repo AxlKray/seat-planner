@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFB547"/><stop offset="1" stop-color="#FF7A1A"/></linearGradient>
+    <linearGradient id="room" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F3F1EE"/></linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#7a3200" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <ellipse cx="512" cy="120" rx="520" ry="260" fill="#fff" opacity=".12"/>
+  <g filter="url(#sh)"><rect x="212" y="200" width="600" height="640" rx="64" fill="url(#room)"/></g>
+  <!-- board -->
+  <rect x="332" y="248" width="360" height="40" rx="14" fill="#2C4A3E"/>
+  <!-- desks: 3 rows x 2 benches, seats with people -->
+  <g id="row">
+    <rect x="262" y="340" width="230" height="120" rx="22" fill="#F1E4CC" stroke="#D9C39C" stroke-width="6"/>
+    <rect x="532" y="340" width="230" height="120" rx="22" fill="#F1E4CC" stroke="#D9C39C" stroke-width="6"/>
+  </g>
+  <use href="#row" y="160"/>
+  <use href="#row" y="320"/>
+  <!-- students (heads + shoulders) -->
+  <g>
+    <g fill="#2F7BF0"><circle cx="330" cy="392" r="26"/><circle cx="424" cy="392" r="26"/><circle cx="600" cy="392" r="26"/></g>
+    <g fill="#FF6B5E"><circle cx="694" cy="392" r="26"/><circle cx="330" cy="552" r="26"/><circle cx="600" cy="552" r="26"/><circle cx="694" cy="552" r="26"/></g>
+    <g fill="#34C759"><circle cx="424" cy="552" r="26"/><circle cx="330" cy="712" r="26"/><circle cx="424" cy="712" r="26"/></g>
+    <g fill="#AF52DE"><circle cx="600" cy="712" r="26"/></g>
+    <g fill="#000" opacity=".12">
+      <path d="M296 446a34 22 0 0 1 68 0z"/><path d="M390 446a34 22 0 0 1 68 0z"/><path d="M566 446a34 22 0 0 1 68 0z"/><path d="M660 446a34 22 0 0 1 68 0z"/>
+      <path d="M296 606a34 22 0 0 1 68 0z"/><path d="M390 606a34 22 0 0 1 68 0z"/><path d="M566 606a34 22 0 0 1 68 0z"/><path d="M660 606a34 22 0 0 1 68 0z"/>
+      <path d="M296 766a34 22 0 0 1 68 0z"/><path d="M390 766a34 22 0 0 1 68 0z"/><path d="M566 766a34 22 0 0 1 68 0z"/>
+    </g>
+    <!-- one free seat, dashed -->
+    <circle cx="694" cy="712" r="26" fill="none" stroke="#C9B48E" stroke-width="6" stroke-dasharray="10 9"/>
+  </g>
+  <!-- teacher desk -->
+  <rect x="402" y="790" width="220" height="26" rx="13" fill="#D2BB8F" opacity=".0"/>
+</svg>
